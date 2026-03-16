@@ -11,13 +11,6 @@ This is the [Node-RED](https://nodered.org/) project for the [PlanktoScope](http
 
 Follow [Development Environment](https://github.com/fairscope/PlanktoScope/blob/main/documentation/docs/community/contribute/tips-and-tricks.md#development-environment)
 
-Then change the `dashboar` project URL to use SSH:
-
-```sh
-cd PlanktoScope/node-red/projects/dashboard
-git remote set-url origin git@github.com:fairscope/dashboard.git
-```
-
 You should then be able to commit and push to the dashboard repository.
 
 ⚠️ Make sure to use Node-RED to review your changes before pushing [see doc](https://nodered.org/docs/user-guide/projects/#local-changes)
