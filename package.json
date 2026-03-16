@@ -1,0 +1,11 @@
+{
+  "name": "dashboard",
+  "private": true,
+  "description": "PlanktoScope dashboard",
+  "node-red": {
+    "settings": {
+      "flowFile": "flows.json",
+      "credentialsFile": "flows_cred.json"
+    }
+  }
+}
