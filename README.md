@@ -7,6 +7,21 @@ This is the [Node-RED](https://nodered.org/) project for the [PlanktoScope](http
 [/ps/node-red-v2/dashboard/](http://planktoscope.local/ps/node-red-v2/dashboard/) to access the dashboard
 [/admin/ps/node-red-v2/](http://planktoscope.local/admin/ps/node-red-v2/) to access the Node-RED editor
 
+## Development
+
+Follow [Development Environment](https://github.com/fairscope/PlanktoScope/blob/main/documentation/docs/community/contribute/tips-and-tricks.md#development-environment)
+
+Then change the `dashboar` project URL to use SSH:
+
+```sh
+cd PlanktoScope/node-red/projects/dashboard
+git remote set-url origin git@github.com:fairscope/dashboard.git
+```
+
+You should then be able to commit and push to the dashboard repository.
+
+⚠️ Make sure to use Node-RED to review your changes before pushing [see doc](https://nodered.org/docs/user-guide/projects/#local-changes)
+
 ## Read and Write Data in global.json
 
 Data is stored in a file located at: [`/home/pi/PlanktoScope/node-red/context/global/global.json`](http://planktoscope.local/admin/fs/files/home/pi/PlanktoScope/node-red/context/global/global.json).
