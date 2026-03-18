@@ -13,7 +13,14 @@ Follow [Development Environment](https://github.com/fairscope/PlanktoScope/blob/
 
 You should then be able to commit and push to the dashboard repository.
 
-⚠️ Make sure to use Node-RED to review your changes before pushing [see doc](https://nodered.org/docs/user-guide/projects/#local-changes)
+⚠️ Make sure to use Node-RED to review your changes [see doc](https://nodered.org/docs/user-guide/projects/#local-changes)
+
+You can commit via CLI or Node-RED. You can only push via CLI.
+
+```sh
+cd PlanktoScope/node-red/projects/dashboard
+git push
+```
 
 ## Read and Write Data in global.json
 
