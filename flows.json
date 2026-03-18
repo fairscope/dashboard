@@ -2125,6 +2125,22 @@
         ]
     },
     {
+        "id": "d4f9e566efae7260",
+        "type": "debug",
+        "z": "b2bf18a0f40a5d72",
+        "name": "debug 8",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 940,
+        "y": 540,
+        "wires": []
+    },
+    {
         "id": "d525e948816e36b6",
         "type": "ui-template",
         "z": "f90406ba2da5932f",
