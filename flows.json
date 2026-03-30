@@ -5067,7 +5067,7 @@
     "type": "function",
     "z": "4fdbd7bacb797c5a",
     "name": "EXPLORER",
-    "func": "// Explorer Function Node\n// TSV \u2192 {meta, keys, data: [{id, url, ...keys}]}\n\nconst lines = msg.payload.toString().trim().split(/\\r?\\n/);\nif (lines.length < 2) return null;\n\n// 1. Parse Headers\nconst headers = lines[0].split(\"\\t\");\nconst val = (row, col) => {\n    const i = headers.indexOf(col);\n    return i >= 0 ? row[i] : null;\n};\n\n// 2. Extract Meta from first valid data row\nlet firstRow = null;\nfor (let i = 1; i < lines.length; i++) {\n    // Skip rows starting with '[' (metadata comments)\n    if (!lines[i].trim().startsWith(\"[\")) {\n        firstRow = lines[i].split(\"\\t\");\n        break;\n    }\n}\n\n// Default meta\nconst meta = {\n    sample_id: \"\",\n    project: \"\",\n    acq_id: \"\",\n    resolution: 1.0 // Default fallback\n};\n\nif (firstRow) {\n    meta.sample_id = val(firstRow, \"sample_id\") || \"\";\n    meta.project = val(firstRow, \"sample_project\") || \"\";\n    meta.acq_id = val(firstRow, \"acq_id\") || \"\";\n    \n    // Extract pixel size (microns per pixel) - always needed for scale bar rendering\n    const px = parseFloat(val(firstRow, \"process_pixel\"));\n    if (!isNaN(px) && px > 0) {\n        meta.resolution = px;\n    }\n    // Flag: if true, measurement values (width, height, area, etc.) are already in microns\n    const applied = val(firstRow, \"process_pixel_applied\");\n    meta.process_pixel_applied = (applied && applied.toString().toLowerCase() === \"true\");\n}\n\n// 3. Explorer Keys to extract\nconst explorerKeys = [\n    \"object_area\", \"object_equivalent_diameter\", \"object_perim.\",\n    \"object_major\", \"object_minor\", \"object_width\", \"object_height\",\n    \"object_circ.\", \"object_elongation\", \"object_solidity\",\n    \"object_eccentricity\", \"object_MeanHue\", \"object_MeanSaturation\",\n    \"object_MeanValue\", \"object_StdValue\", \"object_blur_laplacian\"\n];\n\nlet seq = 0;\nconst data = [];\n\n// 4. Process Data Lines\nfor (let i = 1; i < lines.length; i++) {\n    const line = lines[i];\n    if (line.trim().startsWith(\"[\")) continue;\n\n    const row = line.split(\"\\t\");\n\n    const item = {\n        id: val(row, \"object_id\"),\n        // Construct URL\n        url: `/ps/node-red-v2/my-images/${(val(row,\"object_date\")||\"\").replace(/ /g,\"_\")}/${(val(row,\"sample_id\")||\"\").replace(/ /g,\"_\")}/${(val(row,\"acq_id\")||\"\").replace(/ /g,\"_\")}/${val(row,\"img_file_name\")}`,\n        sequence_index: seq++\n    };\n\n    // Parse numeric keys\n    explorerKeys.forEach(k => {\n        let v = parseFloat(val(row, k));\n        item[k] = isNaN(v) ? 0 : v;\n    });\n\n    // Custom calc for greenness (example)\n    const hue = item.object_MeanHue || 0;\n    const dist = Math.abs(hue - 80);\n    item.custom_greenness = Math.max(0, 100 - dist);\n\n    data.push(item);\n}\n\nmsg.payload = {\n    meta,\n    keys: explorerKeys,\n    data\n};\n\nreturn msg;",
+    "func": "// Explorer Function Node\n// TSV \u2192 {meta, keys, data: [{id, url, ...keys}]}\n\nconst lines = msg.payload.toString().trim().split(/\\r?\\n/);\nif (lines.length < 2) return null;\n\n// 1. Parse Headers\nconst headers = lines[0].split(\"\\t\");\nconst val = (row, col) => {\n    const i = headers.indexOf(col);\n    return i >= 0 ? row[i] : null;\n};\n\n// 2. Extract Meta from first valid data row\nlet firstRow = null;\nfor (let i = 1; i < lines.length; i++) {\n    // Skip rows starting with '[' (metadata comments)\n    if (!lines[i].trim().startsWith(\"[\")) {\n        firstRow = lines[i].split(\"\\t\");\n        break;\n    }\n}\n\n// Default meta\nconst meta = {\n    sample_id: \"\",\n    project: \"\",\n    acq_id: \"\",\n    resolution: 1.0 // Default fallback\n};\n\nif (firstRow) {\n    meta.sample_id = val(firstRow, \"sample_id\") || \"\";\n    meta.project = val(firstRow, \"sample_project\") || \"\";\n    meta.acq_id = val(firstRow, \"acq_id\") || \"\";\n    \n    // Extract pixel size (microns per pixel) - always needed for scale bar rendering\n    const px = parseFloat(val(firstRow, \"process_pixel\"));\n    if (!isNaN(px) && px > 0) {\n        meta.resolution = px;\n    }\n    // Flag: if true, measurement values (width, height, area, etc.) are already in microns\n    const applied = val(firstRow, \"process_pixel_applied\");\n    meta.process_pixel_applied = (applied && applied.toString().toLowerCase() === \"true\");\n}\n\n// 3. Explorer Keys to extract\nconst explorerKeys = [\n    \"object_area\", \"object_equivalent_diameter\", \"object_perim.\",\n    \"object_major\", \"object_minor\", \"object_width\", \"object_height\",\n    \"object_circ.\", \"object_elongation\", \"object_solidity\",\n    \"object_eccentricity\", \"object_MeanHue\", \"object_MeanSaturation\",\n    \"object_MeanValue\", \"object_StdValue\", \"object_blur_laplacian\"\n];\n\nlet seq = 0;\nconst data = [];\n\n// 4. Process Data Lines\nfor (let i = 1; i < lines.length; i++) {\n    const line = lines[i];\n    if (line.trim().startsWith(\"[\")) continue;\n\n    const row = line.split(\"\\t\");\n\n    const item = {\n        id: val(row, \"object_id\"),\n        // Construct URL\n        url: `/api/files/objects/${(val(row,\"object_date\")||\"\").replace(/ /g,\"_\")}/${(val(row,\"sample_id\")||\"\").replace(/ /g,\"_\")}/${(val(row,\"acq_id\")||\"\").replace(/ /g,\"_\")}/${val(row,\"img_file_name\")}`,\n        sequence_index: seq++\n    };\n\n    // Parse numeric keys\n    explorerKeys.forEach(k => {\n        let v = parseFloat(val(row, k));\n        item[k] = isNaN(v) ? 0 : v;\n    });\n\n    // Custom calc for greenness (example)\n    const hue = item.object_MeanHue || 0;\n    const dist = Math.abs(hue - 80);\n    item.custom_greenness = Math.max(0, 100 - dist);\n\n    data.push(item);\n}\n\nmsg.payload = {\n    meta,\n    keys: explorerKeys,\n    data\n};\n\nreturn msg;",
     "outputs": 1,
     "timeout": 0,
     "noerr": 0,
@@ -5230,76 +5230,6 @@
         "e16e3dace2bb507f"
       ]
     ]
-  },
-  {
-    "id": "c4b012d792e96151",
-    "type": "http in",
-    "z": "4fdbd7bacb797c5a",
-    "name": "GET /my-images/*",
-    "url": "/my-images/*",
-    "method": "get",
-    "upload": false,
-    "swaggerDoc": "",
-    "x": 310,
-    "y": 1200,
-    "wires": [
-      [
-        "2b70ea63275595fa"
-      ]
-    ]
-  },
-  {
-    "id": "2b70ea63275595fa",
-    "type": "function",
-    "z": "4fdbd7bacb797c5a",
-    "name": "Build Path (Wildcard)",
-    "func": "const relativePath = msg.req.params[0];\nconst root = \"/home/pi/data/objects\";\nconst cleanPath = decodeURIComponent(relativePath).replace(/[.][.]/g, \"\").replace(/ /g, \"_\");\nmsg.filename = root + \"/\" + cleanPath;\nreturn msg;",
-    "outputs": 1,
-    "timeout": 0,
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 570,
-    "y": 1200,
-    "wires": [
-      [
-        "0f149df521a9915a"
-      ]
-    ]
-  },
-  {
-    "id": "0f149df521a9915a",
-    "type": "file in",
-    "z": "4fdbd7bacb797c5a",
-    "name": "",
-    "filename": "filename",
-    "filenameType": "msg",
-    "format": "",
-    "chunk": false,
-    "sendError": true,
-    "encoding": "none",
-    "allProps": false,
-    "x": 790,
-    "y": 1200,
-    "wires": [
-      [
-        "562f4e2eb1a985bf"
-      ]
-    ]
-  },
-  {
-    "id": "562f4e2eb1a985bf",
-    "type": "http response",
-    "z": "4fdbd7bacb797c5a",
-    "name": "",
-    "statusCode": "",
-    "headers": {
-      "content-type": "image/jpeg"
-    },
-    "x": 1010,
-    "y": 1200,
-    "wires": []
   },
   {
     "id": "d365c80d0854bab7",
@@ -6011,7 +5941,7 @@
     "type": "function",
     "z": "a7825c4c81ad20a0",
     "name": "EXPLORER",
-    "func": "// Explorer Function Node\n// TSV \u2192 {meta, keys, data: [{id, url, ...keys}]}\n\nconst lines = msg.payload.toString().trim().split(/\\r?\\n/);\nif (lines.length < 2) return null;\n\n// 1. Parse Headers\nconst headers = lines[0].split(\"\\t\");\nconst val = (row, col) => {\n    const i = headers.indexOf(col);\n    return i >= 0 ? row[i] : null;\n};\n\n// 2. Extract Meta from first valid data row\nlet firstRow = null;\nfor (let i = 1; i < lines.length; i++) {\n    // Skip rows starting with '[' (metadata comments)\n    if (!lines[i].trim().startsWith(\"[\")) {\n        firstRow = lines[i].split(\"\\t\");\n        break;\n    }\n}\n\n// Default meta\nconst meta = {\n    sample_id: \"\",\n    project: \"\",\n    acq_id: \"\",\n    resolution: 1.0 // Default fallback\n};\n\nif (firstRow) {\n    meta.sample_id = val(firstRow, \"sample_id\") || \"\";\n    meta.project = val(firstRow, \"sample_project\") || \"\";\n    meta.acq_id = val(firstRow, \"acq_id\") || \"\";\n    \n    // Extract pixel size (microns per pixel) - always needed for scale bar rendering\n    const px = parseFloat(val(firstRow, \"process_pixel\"));\n    if (!isNaN(px) && px > 0) {\n        meta.resolution = px;\n    }\n    // Flag: if true, measurement values (width, height, area, etc.) are already in microns\n    const applied = val(firstRow, \"process_pixel_applied\");\n    meta.process_pixel_applied = (applied && applied.toString().toLowerCase() === \"true\");\n}\n\n// 3. Explorer Keys to extract\nconst explorerKeys = [\n    \"object_area\", \"object_equivalent_diameter\", \"object_perim.\",\n    \"object_major\", \"object_minor\", \"object_width\", \"object_height\",\n    \"object_circ.\", \"object_elongation\", \"object_solidity\",\n    \"object_eccentricity\", \"object_MeanHue\", \"object_MeanSaturation\",\n    \"object_MeanValue\", \"object_StdValue\", \"object_blur_laplacian\"\n];\n\nlet seq = 0;\nconst data = [];\n\n// 4. Process Data Lines\nfor (let i = 1; i < lines.length; i++) {\n    const line = lines[i];\n    if (line.trim().startsWith(\"[\")) continue;\n\n    const row = line.split(\"\\t\");\n\n    const item = {\n        id: val(row, \"object_id\"),\n        // Construct URL\n        url: msg.tsvDir ? `/ps/node-red-v2/my-images/${msg.tsvDir}/${val(row,\"img_file_name\")}` : `/ps/node-red-v2/my-images/${val(row,\"object_date\")}/${val(row,\"sample_id\")}/${val(row,\"acq_id\")}/${val(row,\"img_file_name\")}`,\n        sequence_index: seq++\n    };\n\n    // Parse numeric keys\n    explorerKeys.forEach(k => {\n        let v = parseFloat(val(row, k));\n        item[k] = isNaN(v) ? 0 : v;\n    });\n\n    // Custom calc for greenness (example)\n    const hue = item.object_MeanHue || 0;\n    const dist = Math.abs(hue - 80);\n    item.custom_greenness = Math.max(0, 100 - dist);\n\n    data.push(item);\n}\n\n// Cap rows to prevent browser crash on huge datasets\nconst MAX_ROWS = 5000;\nif (data.length > MAX_ROWS) data.length = MAX_ROWS;\n\nmsg.payload = {\n    meta,\n    keys: explorerKeys,\n    data\n};\n\nreturn msg;",
+    "func": "// Explorer Function Node\n// TSV \u2192 {meta, keys, data: [{id, url, ...keys}]}\n\nconst lines = msg.payload.toString().trim().split(/\\r?\\n/);\nif (lines.length < 2) return null;\n\n// 1. Parse Headers\nconst headers = lines[0].split(\"\\t\");\nconst val = (row, col) => {\n    const i = headers.indexOf(col);\n    return i >= 0 ? row[i] : null;\n};\n\n// 2. Extract Meta from first valid data row\nlet firstRow = null;\nfor (let i = 1; i < lines.length; i++) {\n    // Skip rows starting with '[' (metadata comments)\n    if (!lines[i].trim().startsWith(\"[\")) {\n        firstRow = lines[i].split(\"\\t\");\n        break;\n    }\n}\n\n// Default meta\nconst meta = {\n    sample_id: \"\",\n    project: \"\",\n    acq_id: \"\",\n    resolution: 1.0 // Default fallback\n};\n\nif (firstRow) {\n    meta.sample_id = val(firstRow, \"sample_id\") || \"\";\n    meta.project = val(firstRow, \"sample_project\") || \"\";\n    meta.acq_id = val(firstRow, \"acq_id\") || \"\";\n    \n    // Extract pixel size (microns per pixel) - always needed for scale bar rendering\n    const px = parseFloat(val(firstRow, \"process_pixel\"));\n    if (!isNaN(px) && px > 0) {\n        meta.resolution = px;\n    }\n    // Flag: if true, measurement values (width, height, area, etc.) are already in microns\n    const applied = val(firstRow, \"process_pixel_applied\");\n    meta.process_pixel_applied = (applied && applied.toString().toLowerCase() === \"true\");\n}\n\n// 3. Explorer Keys to extract\nconst explorerKeys = [\n    \"object_area\", \"object_equivalent_diameter\", \"object_perim.\",\n    \"object_major\", \"object_minor\", \"object_width\", \"object_height\",\n    \"object_circ.\", \"object_elongation\", \"object_solidity\",\n    \"object_eccentricity\", \"object_MeanHue\", \"object_MeanSaturation\",\n    \"object_MeanValue\", \"object_StdValue\", \"object_blur_laplacian\"\n];\n\nlet seq = 0;\nconst data = [];\n\n// 4. Process Data Lines\nfor (let i = 1; i < lines.length; i++) {\n    const line = lines[i];\n    if (line.trim().startsWith(\"[\")) continue;\n\n    const row = line.split(\"\\t\");\n\n    const item = {\n        id: val(row, \"object_id\"),\n        // Construct URL\n        url: msg.tsvDir ? `/api/files/objects/${msg.tsvDir}/${val(row,\"img_file_name\")}` : `/api/files/objects/${val(row,\"object_date\")}/${val(row,\"sample_id\")}/${val(row,\"acq_id\")}/${val(row,\"img_file_name\")}`,\n        sequence_index: seq++\n    };\n\n    // Parse numeric keys\n    explorerKeys.forEach(k => {\n        let v = parseFloat(val(row, k));\n        item[k] = isNaN(v) ? 0 : v;\n    });\n\n    // Custom calc for greenness (example)\n    const hue = item.object_MeanHue || 0;\n    const dist = Math.abs(hue - 80);\n    item.custom_greenness = Math.max(0, 100 - dist);\n\n    data.push(item);\n}\n\n// Cap rows to prevent browser crash on huge datasets\nconst MAX_ROWS = 5000;\nif (data.length > MAX_ROWS) data.length = MAX_ROWS;\n\nmsg.payload = {\n    meta,\n    keys: explorerKeys,\n    data\n};\n\nreturn msg;",
     "outputs": 1,
     "timeout": 0,
     "noerr": 0,
@@ -6086,7 +6016,7 @@
     "type": "function",
     "z": "a7825c4c81ad20a0",
     "name": "GALLERY",
-    "func": "// GALLERY Function Node\n// TSV \u2192 { data: [], meta: { resolution: ... }, keys: ... }\n\n// 1. Handle Clear Signals\nif (msg.clear === true || (msg.payload && msg.payload.clear === true)) {\n    msg.payload = { data: [], meta: { resolution: 1 }, keys: [] };\n    return msg;\n}\n\n// 2. Validate Payload\nif (!msg.payload) return null;\nconst lines = msg.payload.toString().trim().split(/\\r?\\n/);\nif (lines.length < 2) {\n    msg.payload = { data: [], meta: { resolution: 1 }, keys: [] };\n    return msg;\n}\n\n// 3. Parse Headers\nconst headers = lines[0].split('\\t');\nconst get = (row, key) => {\n    const idx = headers.indexOf(key);\n    return idx >= 0 ? row[idx] : null;\n};\n\n// 4. Extract Meta (Resolution is key here)\nlet firstRow = null;\nfor (let i = 1; i < lines.length; i++) {\n    const L = lines[i].trim();\n    if (!L.startsWith('[') && L !== '') {\n        firstRow = lines[i].split('\\t');\n        break;\n    }\n}\n\nconst meta = {\n    sample_id: 'N/A',\n    project: 'N/A',\n    acq_id: 'N/A',\n    resolution: 1.0 // Default fallback\n};\n\nif (firstRow) {\n    meta.sample_id = get(firstRow, 'sample_id') || \"\";\n    meta.project   = get(firstRow, 'sample_project') || \"\";\n    meta.acq_id    = get(firstRow, 'acq_id') || \"\";\n\n    // Extract pixel size (microns per pixel) - always needed for scale bar rendering\n    const px = parseFloat(get(firstRow, 'process_pixel'));\n    if (!isNaN(px) && px > 0) {\n        meta.resolution = px;\n    }\n    // Flag: if true, measurement values (width, height, area, etc.) are already in microns\n    const applied = get(firstRow, 'process_pixel_applied');\n    meta.process_pixel_applied = (applied && applied.toString().toLowerCase() === \"true\");\n}\n\n// 5. Select Keys to Display\nconst usefulKeys = [\n    \"object_area\", \"object_width\", \"object_height\",\n    \"object_equivalent_diameter\", \"object_major\", \"object_minor\",\n    \"object_MeanHue\", \"object_elongation\", \"object_blur_laplacian\"\n];\n\nconst data = [];\n\n// 6. Process Rows\nfor (let i = 1; i < lines.length; i++) {\n    const rowLine = lines[i].trim();\n    if (rowLine.startsWith('[') || rowLine === '') continue;\n\n    const row = rowLine.split('\\t');\n    if (row.length !== headers.length) continue;\n\n    const item = {\n        id: get(row, 'object_id'),\n        // Construct Image URL\n        url: msg.tsvDir ? `/ps/node-red-v2/my-images/${msg.tsvDir}/${get(row, 'img_file_name')}` : `/ps/node-red-v2/my-images/${get(row, 'object_date')}/${get(row, 'sample_id')}/${get(row, 'acq_id')}/${get(row, 'img_file_name')}`\n    };\n\n    // Parse numeric values\n    usefulKeys.forEach(k => {\n        let v = parseFloat(get(row, k));\n        item[k] = isNaN(v) ? 0 : v;\n    });\n\n    data.push(item);\n}\n\n// Cap rows to prevent browser crash on huge datasets\nconst MAX_ROWS = 5000;\nif (data.length > MAX_ROWS) data.length = MAX_ROWS;\n\nmsg.payload = {\n    data,\n    keys: usefulKeys,\n    meta\n};\n\nreturn msg;",
+    "func": "// GALLERY Function Node\n// TSV \u2192 { data: [], meta: { resolution: ... }, keys: ... }\n\n// 1. Handle Clear Signals\nif (msg.clear === true || (msg.payload && msg.payload.clear === true)) {\n    msg.payload = { data: [], meta: { resolution: 1 }, keys: [] };\n    return msg;\n}\n\n// 2. Validate Payload\nif (!msg.payload) return null;\nconst lines = msg.payload.toString().trim().split(/\\r?\\n/);\nif (lines.length < 2) {\n    msg.payload = { data: [], meta: { resolution: 1 }, keys: [] };\n    return msg;\n}\n\n// 3. Parse Headers\nconst headers = lines[0].split('\\t');\nconst get = (row, key) => {\n    const idx = headers.indexOf(key);\n    return idx >= 0 ? row[idx] : null;\n};\n\n// 4. Extract Meta (Resolution is key here)\nlet firstRow = null;\nfor (let i = 1; i < lines.length; i++) {\n    const L = lines[i].trim();\n    if (!L.startsWith('[') && L !== '') {\n        firstRow = lines[i].split('\\t');\n        break;\n    }\n}\n\nconst meta = {\n    sample_id: 'N/A',\n    project: 'N/A',\n    acq_id: 'N/A',\n    resolution: 1.0 // Default fallback\n};\n\nif (firstRow) {\n    meta.sample_id = get(firstRow, 'sample_id') || \"\";\n    meta.project   = get(firstRow, 'sample_project') || \"\";\n    meta.acq_id    = get(firstRow, 'acq_id') || \"\";\n\n    // Extract pixel size (microns per pixel) - always needed for scale bar rendering\n    const px = parseFloat(get(firstRow, 'process_pixel'));\n    if (!isNaN(px) && px > 0) {\n        meta.resolution = px;\n    }\n    // Flag: if true, measurement values (width, height, area, etc.) are already in microns\n    const applied = get(firstRow, 'process_pixel_applied');\n    meta.process_pixel_applied = (applied && applied.toString().toLowerCase() === \"true\");\n}\n\n// 5. Select Keys to Display\nconst usefulKeys = [\n    \"object_area\", \"object_width\", \"object_height\",\n    \"object_equivalent_diameter\", \"object_major\", \"object_minor\",\n    \"object_MeanHue\", \"object_elongation\", \"object_blur_laplacian\"\n];\n\nconst data = [];\n\n// 6. Process Rows\nfor (let i = 1; i < lines.length; i++) {\n    const rowLine = lines[i].trim();\n    if (rowLine.startsWith('[') || rowLine === '') continue;\n\n    const row = rowLine.split('\\t');\n    if (row.length !== headers.length) continue;\n\n    const item = {\n        id: get(row, 'object_id'),\n        // Construct Image URL\n        url: msg.tsvDir ? `/api/files/objects/${msg.tsvDir}/${get(row, 'img_file_name')}` : `/api/files/objects/${get(row, 'object_date')}/${get(row, 'sample_id')}/${get(row, 'acq_id')}/${get(row, 'img_file_name')}`\n    };\n\n    // Parse numeric values\n    usefulKeys.forEach(k => {\n        let v = parseFloat(get(row, k));\n        item[k] = isNaN(v) ? 0 : v;\n    });\n\n    data.push(item);\n}\n\n// Cap rows to prevent browser crash on huge datasets\nconst MAX_ROWS = 5000;\nif (data.length > MAX_ROWS) data.length = MAX_ROWS;\n\nmsg.payload = {\n    data,\n    keys: usefulKeys,\n    meta\n};\n\nreturn msg;",
     "outputs": 1,
     "timeout": 0,
     "noerr": 0,
@@ -6174,77 +6104,6 @@
         "59c2b02e7b50171f"
       ]
     ]
-  },
-  {
-    "id": "37a1abc2caf4401e",
-    "type": "http in",
-    "z": "a7825c4c81ad20a0",
-    "name": "GET /my-images/*",
-    "url": "/my-images/*",
-    "method": "get",
-    "upload": false,
-    "skipBodyParsing": false,
-    "swaggerDoc": "",
-    "x": 330,
-    "y": 1200,
-    "wires": [
-      [
-        "d1b59a0a0cf01b30"
-      ]
-    ]
-  },
-  {
-    "id": "d1b59a0a0cf01b30",
-    "type": "function",
-    "z": "a7825c4c81ad20a0",
-    "name": "Build Path (Wildcard)",
-    "func": "const relativePath = msg.req.params[0];\nconst root = \"/home/pi/data/objects\";\nconst cleanPath = decodeURIComponent(relativePath).replace(/[.][.]/g, \"\").replace(/ /g, \"_\");\nmsg.filename = root + \"/\" + cleanPath;\nreturn msg;",
-    "outputs": 1,
-    "timeout": 0,
-    "noerr": 0,
-    "initialize": "",
-    "finalize": "",
-    "libs": [],
-    "x": 590,
-    "y": 1200,
-    "wires": [
-      [
-        "f06338911a7ca76e"
-      ]
-    ]
-  },
-  {
-    "id": "f06338911a7ca76e",
-    "type": "file in",
-    "z": "a7825c4c81ad20a0",
-    "name": "",
-    "filename": "filename",
-    "filenameType": "msg",
-    "format": "",
-    "chunk": false,
-    "sendError": true,
-    "encoding": "none",
-    "allProps": false,
-    "x": 820,
-    "y": 1200,
-    "wires": [
-      [
-        "26a7477d274d7e37"
-      ]
-    ]
-  },
-  {
-    "id": "26a7477d274d7e37",
-    "type": "http response",
-    "z": "a7825c4c81ad20a0",
-    "name": "",
-    "statusCode": "",
-    "headers": {
-      "content-type": "image/jpeg"
-    },
-    "x": 1030,
-    "y": 1200,
-    "wires": []
   },
   {
     "id": "a351f0483ac3a747",
