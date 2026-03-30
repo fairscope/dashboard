@@ -2621,6 +2621,29 @@
     ]
   },
   {
+    "id": "df6aac39f636d1d9",
+    "type": "ui-template",
+    "z": "f90406ba2da5932f",
+    "group": "",
+    "page": "",
+    "ui": "e6ae26617c24c3ea",
+    "name": "Favicon",
+    "order": 0,
+    "width": 0,
+    "height": 0,
+    "head": "",
+    "format": "<script>\n(function() {\n    var link = document.querySelector(\"link[rel*='icon']\") || document.createElement(\"link\");\n    link.type = \"image/x-icon\";\n    link.rel = \"shortcut icon\";\n    link.href = \"/favicon.ico\";\n    document.getElementsByTagName(\"head\")[0].appendChild(link);\n})();\n</script>",
+    "storeOutMessages": true,
+    "passthru": true,
+    "templateScope": "widget:ui",
+    "className": "",
+    "x": 200,
+    "y": 200,
+    "wires": [
+      []
+    ]
+  },
+  {
     "id": "5fedc522b345193c",
     "type": "ui-template",
     "z": "6d6a011bf1913637",
@@ -3721,7 +3744,7 @@
     "finalize": "",
     "libs": [],
     "x": 760,
-    "y": 120,
+    "y": 80,
     "wires": [
       []
     ]
@@ -3836,7 +3859,7 @@
     "finalize": "",
     "libs": [],
     "x": 760,
-    "y": 220,
+    "y": 200,
     "wires": [
       [
         "ff1fcb16bcb6619e"
@@ -3856,7 +3879,7 @@
     "finalize": "",
     "libs": [],
     "x": 760,
-    "y": 280,
+    "y": 240,
     "wires": [
       [
         "51e3db016f2cdf07"
@@ -3928,7 +3951,7 @@
     "finalize": "",
     "libs": [],
     "x": 760,
-    "y": 160,
+    "y": 120,
     "wires": [
       [
         "687e8f43fbf72b84"
@@ -4025,6 +4048,53 @@
     "wires": [
       [
         "7814ecbf379005bd"
+      ]
+    ]
+  },
+  {
+    "id": "a1b2c3d4e5f60001",
+    "type": "switch",
+    "z": "71ede8b7dd88d90e",
+    "name": "pause?",
+    "property": "topic",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "pause_control",
+        "vt": "str"
+      },
+      {
+        "t": "else"
+      }
+    ],
+    "checkall": "true",
+    "repair": false,
+    "outputs": 2,
+    "x": 530,
+    "y": 160,
+    "wires": [
+      [
+        "a1b2c3d4e5f60002"
+      ],
+      [
+        "98dde1119867adf0",
+        "74aa092817adc6f0"
+      ]
+    ]
+  },
+  {
+    "id": "a1b2c3d4e5f60002",
+    "type": "function",
+    "z": "71ede8b7dd88d90e",
+    "name": "pause/resume",
+    "func": "msg.topic = \"imager/image\";\nreturn msg;",
+    "outputs": 1,
+    "x": 760,
+    "y": 160,
+    "wires": [
+      [
+        "687e8f43fbf72b84"
       ]
     ]
   },
@@ -7794,76 +7864,5 @@
     "x": 470,
     "y": 1100,
     "wires": []
-  },
-  {
-    "id": "df6aac39f636d1d9",
-    "type": "ui-template",
-    "z": "f90406ba2da5932f",
-    "group": "",
-    "page": "",
-    "ui": "e6ae26617c24c3ea",
-    "name": "Favicon",
-    "order": 0,
-    "width": 0,
-    "height": 0,
-    "head": "",
-    "format": "<script>\n(function() {\n    var link = document.querySelector(\"link[rel*='icon']\") || document.createElement(\"link\");\n    link.type = \"image/x-icon\";\n    link.rel = \"shortcut icon\";\n    link.href = \"/favicon.ico\";\n    document.getElementsByTagName(\"head\")[0].appendChild(link);\n})();\n</script>",
-    "storeOutMessages": true,
-    "passthru": true,
-    "resend": true,
-    "templateScope": "widget:ui",
-    "className": "",
-    "x": 200,
-    "y": 200,
-    "wires": [
-      []
-    ]
-  },
-  {
-    "id": "a1b2c3d4e5f60001",
-    "type": "switch",
-    "z": "71ede8b7dd88d90e",
-    "name": "pause?",
-    "property": "topic",
-    "propertyType": "msg",
-    "rules": [
-      {
-        "t": "eq",
-        "v": "pause_control",
-        "vt": "str"
-      },
-      {
-        "t": "else"
-      }
-    ],
-    "checkall": "true",
-    "repair": false,
-    "outputs": 2,
-    "x": 530,
-    "y": 160,
-    "wires": [
-      [
-        "a1b2c3d4e5f60002"
-      ],
-      [
-        "98dde1119867adf0",
-        "74aa092817adc6f0"
-      ]
-    ]
-  },
-  {
-    "id": "a1b2c3d4e5f60002",
-    "type": "function",
-    "z": "71ede8b7dd88d90e",
-    "name": "pause/resume",
-    "func": "msg.topic = \"imager/image\";\nreturn msg;",
-    "outputs": 1,
-    "x": 710,
-    "y": 160,
-    "wires": [
-      [
-        "687e8f43fbf72b84"
-      ]
-    ]
   }
 ]
