@@ -4081,7 +4081,8 @@
         "wires": [
             [
                 "773960d6099cab47",
-                "aa1309fda7fde8f2"
+                "aa1309fda7fde8f2",
+                "a1b2c3d4e5f60005"
             ]
         ]
     },
@@ -4182,7 +4183,8 @@
         "y": 260,
         "wires": [
             [
-                "e2db15bb9c3c254f"
+                "e2db15bb9c3c254f",
+                "a1b2c3d4e5f60003"
             ]
         ]
     },
@@ -4307,7 +4309,7 @@
         "width": 0,
         "height": 0,
         "head": "",
-        "format": "<template>\n  <v-dialog v-if=\"showDialog\" v-model=\"showDialog\" max-width=\"500\">\n    <v-card>\n      <v-card-title class=\"font-weight-bold\">\n        Segmentation Required\n      </v-card-title>\n\n      <v-card-text>\n        <p>\n          The selected sample has not been segmented yet.<br>\n          Do you want to start segmentation now?\n        </p>\n\n        <v-divider class=\"my-3\"></v-divider>\n\n        <v-list density=\"compact\">\n          <v-list-item>\n            <v-list-item-title><b>Project:</b> {{ payload.project_name }}</v-list-item-title>\n          </v-list-item>\n          <v-list-item>\n            <v-list-item-title><b>Sample:</b> {{ payload.sample_id }}</v-list-item-title>\n          </v-list-item>\n          <v-list-item>\n            <v-list-item-title><b>Acquisition:</b> {{ payload.acquisition_id }}</v-list-item-title>\n          </v-list-item>\n          <v-list-item>\n            <v-list-item-title><b>Operator:</b> {{ payload.operator_name }}</v-list-item-title>\n          </v-list-item>\n          <v-list-item>\n            <v-list-item-title><b>Images acquired:</b> {{ payload.image_acquired_count }}</v-list-item-title>\n          </v-list-item>\n          <v-list-item>\n            <v-list-item-title><b>Path:</b> {{ payload.path }}</v-list-item-title>\n          </v-list-item>\n        </v-list>\n\n        <v-divider class=\"my-3\"></v-divider>\n\n        <v-text-field\n          v-model.number=\"process_min_ESD\"\n          label=\"Minimal area-equivalent diameter (µm)\"\n          type=\"number\"\n          min=\"1\"\n          step=\"1\"\n          hint=\"The Area-Equivalent Diameter is the calculated diameter of a circle that has the exact same area as the particle's silhouette area. This field sets the minimum size threshold (in μm) for particles to be included in the analysis.\"\n          persistent-hint\n        ></v-text-field>\n      </v-card-text>\n\n      <v-card-actions>\n        <v-spacer></v-spacer>\n        <v-btn color=\"grey\" variant=\"tonal\" @click=\"showDialog = false\">\n          Cancel\n        </v-btn>\n        <v-btn color=\"primary\" variant=\"flat\" @click=\"sendSegment\">\n          Segment\n        </v-btn>\n      </v-card-actions>\n    </v-card>\n  </v-dialog>\n</template>\n<script>\n  export default {\n  props: {\n    msg: { type: Object, default: () => ({}) },\n  },\n  data() {\n    return {\n      payload: {},\n      showDialog: false, \n      process_min_ESD: 20, // Valeur initiale correcte\n      isReady: false, \n    };\n  },\n\n  mounted() {\n    setTimeout(() => {\n      this.isReady = true;\n    }, 1000);\n  },\n\n  watch: {\n    msg: {\n      deep: true,\n      handler(newMsg) {\n        if (!this.isReady) return;\n        if (!newMsg || !newMsg.payload) return;\n\n        const p = newMsg.payload;\n        \n        const shouldOpen = p.open_dialog === true && p.is_segmented === false;\n\n        if (shouldOpen) {\n          this.payload = p;\n          // MODIFICATION ICI : Remplacez 0 par 20 à la fin de la ligne\n          this.process_min_ESD = (typeof p.process_min_ESD === 'number') ? p.process_min_ESD : 20;\n          this.showDialog = true;\n        }\n      },\n    },\n  },\n\n  methods: {\n    sendSegment() {\n      const outMsg = {\n        topic: \"segmenter/segment\",\n        payload: {\n          action: \"segment\",\n          path: [this.payload.path],\n          settings: {\n            force: false,\n            recursive: true,\n            ecotaxa: true,\n            keep: true,\n            process_id: 1,\n            process_min_ESD: this.process_min_ESD,\n          },\n          dataset: {\n            project_name: this.payload.project_name,\n            sample_id: this.payload.sample_id,\n            acquisition_id: this.payload.acquisition_id,\n            operator_name: this.payload.operator_name,\n            image_acquired_count: this.payload.image_acquired_count,\n            path: this.payload.path,\n          },\n        },\n      };\n\n      this.send(outMsg);\n      this.showDialog = false;\n    },\n  },\n};\n</script>",
+        "format": "<template>\n  <v-dialog v-if=\"showDialog\" v-model=\"showDialog\" max-width=\"500\">\n    <v-card>\n      <v-card-title class=\"font-weight-bold\">\n        {{ batchMode ? 'Batch Segmentation' : 'Segmentation Required' }}\n      </v-card-title>\n\n      <v-card-text>\n        <p v-if=\"batchMode\">\n          You are about to segment <strong>{{ batchCount }}</strong> acquisitions.<br>\n          Do you want to start the segmentation queue?\n        </p>\n        <p v-else>\n          The selected sample has not been segmented yet.<br>\n          Do you want to start segmentation now?\n        </p>\n\n        <v-divider class=\"my-3\"></v-divider>\n\n        <!-- Single acquisition details -->\n        <v-list v-if=\"!batchMode\" density=\"compact\">\n          <v-list-item>\n            <v-list-item-title><b>Project:</b> {{ payload.project_name }}</v-list-item-title>\n          </v-list-item>\n          <v-list-item>\n            <v-list-item-title><b>Sample:</b> {{ payload.sample_id }}</v-list-item-title>\n          </v-list-item>\n          <v-list-item>\n            <v-list-item-title><b>Acquisition:</b> {{ payload.acquisition_id }}</v-list-item-title>\n          </v-list-item>\n          <v-list-item>\n            <v-list-item-title><b>Operator:</b> {{ payload.operator_name }}</v-list-item-title>\n          </v-list-item>\n          <v-list-item>\n            <v-list-item-title><b>Images acquired:</b> {{ payload.image_acquired_count }}</v-list-item-title>\n          </v-list-item>\n          <v-list-item>\n            <v-list-item-title><b>Path:</b> {{ payload.path }}</v-list-item-title>\n          </v-list-item>\n        </v-list>\n\n        <!-- Batch acquisition summary -->\n        <v-list v-else density=\"compact\">\n          <v-list-item v-for=\"(item, idx) in batchItems.slice(0, 5)\" :key=\"idx\">\n            <v-list-item-title>{{ item.project_name }} / {{ item.sample_id }} / {{ item.acquisition_id }}</v-list-item-title>\n          </v-list-item>\n          <v-list-item v-if=\"batchItems.length > 5\">\n            <v-list-item-title class=\"text-grey\">...and {{ batchItems.length - 5 }} more</v-list-item-title>\n          </v-list-item>\n        </v-list>\n\n        <v-divider class=\"my-3\"></v-divider>\n\n        <v-text-field\n          v-model.number=\"process_min_ESD\"\n          label=\"Minimal area-equivalent diameter (µm)\"\n          type=\"number\"\n          min=\"1\"\n          step=\"1\"\n          hint=\"The Area-Equivalent Diameter is the calculated diameter of a circle that has the exact same area as the particle's silhouette area. This field sets the minimum size threshold (in μm) for particles to be included in the analysis.\"\n          persistent-hint\n        ></v-text-field>\n      </v-card-text>\n\n      <v-card-actions>\n        <v-spacer></v-spacer>\n        <v-btn color=\"grey\" variant=\"tonal\" @click=\"showDialog = false\">\n          Cancel\n        </v-btn>\n        <v-btn color=\"primary\" variant=\"flat\" @click=\"sendSegment\">\n          {{ batchMode ? 'Start Queue' : 'Segment' }}\n        </v-btn>\n      </v-card-actions>\n    </v-card>\n  </v-dialog>\n</template>\n<script>\n  export default {\n  props: {\n    msg: { type: Object, default: () => ({}) },\n  },\n  data() {\n    return {\n      payload: {},\n      showDialog: false,\n      process_min_ESD: 20,\n      isReady: false,\n      batchMode: false,\n      batchCount: 0,\n      batchItems: [],\n    };\n  },\n\n  mounted() {\n    setTimeout(() => {\n      this.isReady = true;\n    }, 1000);\n  },\n\n  watch: {\n    msg: {\n      deep: true,\n      handler(newMsg) {\n        if (!this.isReady) return;\n        if (!newMsg || !newMsg.payload) return;\n\n        const p = newMsg.payload;\n\n        const shouldOpen = p.open_dialog === true && p.is_segmented === false;\n\n        if (shouldOpen) {\n          this.payload = p;\n          this.batchMode = p.batch_mode === true;\n          this.batchCount = p.batch_count || 0;\n          this.batchItems = p.batch_items || [];\n          this.process_min_ESD = (typeof p.process_min_ESD === 'number') ? p.process_min_ESD : 20;\n          this.showDialog = true;\n        }\n      },\n    },\n  },\n\n  methods: {\n    sendSegment() {\n      if (this.batchMode) {\n        // Batch mode: send queue_confirmed to the Queue Processor\n        const outMsg = {\n          topic: \"queue_confirmed\",\n          payload: {\n            items: this.batchItems,\n            process_min_ESD: this.process_min_ESD,\n          },\n        };\n        this.send(outMsg);\n      } else {\n        // Single mode: existing behavior\n        const outMsg = {\n          topic: \"segmenter/segment\",\n          payload: {\n            action: \"segment\",\n            path: [this.payload.path],\n            settings: {\n              force: false,\n              recursive: true,\n              ecotaxa: true,\n              keep: true,\n              process_id: 1,\n              process_min_ESD: this.process_min_ESD,\n            },\n            dataset: {\n              project_name: this.payload.project_name,\n              sample_id: this.payload.sample_id,\n              acquisition_id: this.payload.acquisition_id,\n              operator_name: this.payload.operator_name,\n              image_acquired_count: this.payload.image_acquired_count,\n              path: this.payload.path,\n            },\n          },\n        };\n        this.send(outMsg);\n      }\n      this.showDialog = false;\n      this.batchMode = false;\n    },\n  },\n};\n</script>",
         "storeOutMessages": true,
         "passthru": true,
         "resendOnRefresh": true,
@@ -4317,7 +4319,8 @@
         "y": 140,
         "wires": [
             [
-                "60ae065050fc2ad3"
+                "60ae065050fc2ad3",
+                "a1b2c3d4e5f60002"
             ]
         ]
     },
@@ -4333,7 +4336,7 @@
         "width": 0,
         "height": 0,
         "head": "",
-        "format": "<template>\n  <v-data-table fluid :headers=\"headers\" :items=\"filteredItems\" :search=\"search\" :loading=\"loading\"\n    item-value=\"acquisition_id\" density=\"comfortable\" hover :item-class=\"getRowClass\"\n    v-model:items-per-page=\"itemsPerPage\">\n\n    <template v-slot:loading>\n      <v-skeleton-loader type=\"table-row@5\" />\n    </template>\n\n    <template v-slot:item.date=\"{ item }\">\n      <span class=\"text-body-2 font-weight-medium text-high-emphasis\">\n        {{ formatDate(item.date) }}\n      </span>\n    </template>\n\n    <template v-slot:item.project_name=\"{ item }\">\n      <span class=\"text-body-2 font-weight-medium text-high-emphasis\">\n        {{ item.project_name }}\n      </span>\n    </template>\n\n    <template v-slot:item.sample_id=\"{ item }\">\n      <span class=\"text-body-2 text-high-emphasis\">\n        {{ item.sample_id }}\n      </span>\n    </template>\n\n    <template v-slot:item.acquisition_id=\"{ item }\">\n      <code class=\"bg-grey-lighten-4 px-2 py-1 rounded text-caption text-grey-darken-3\">\n        {{ item.acquisition_id }}\n      </code>\n    </template>\n\n    <template v-slot:item.operator_name=\"{ item }\">\n      <span class=\"text-body-2 text-high-emphasis\">\n        {{ item.operator_name }}\n      </span>\n    </template>\n\n    <template v-slot:item.image_acquired_count=\"{ item }\">\n      <div class=\"d-flex align-center justify-end text-medium-emphasis\">\n        <v-icon size=\"small\" class=\"mr-2\">mdi-image-outline</v-icon>\n        <span class=\"font-weight-bold text-high-emphasis\">\n          {{ Number(item.image_acquired_count || 0).toLocaleString() }}\n        </span>\n      </div>\n    </template>\n\n    <template v-slot:item.gallery=\"{ item }\">\n      <v-btn variant=\"text\" size=\"small\" color=\"grey-darken-1\" :href=\"item.gallery\" target=\"_blank\">\n        <v-icon start>mdi-folder-image</v-icon>\n        Gallery\n      </v-btn>\n    </template>\n\n    <template v-slot:item.actions=\"{ item }\">\n      <div class=\"d-flex justify-end align-center\">\n        <v-btn v-if=\"!item.is_segmented\" variant=\"text\" size=\"small\" color=\"primary\" @click=\"segment(item)\">\n          <v-icon start>mdi-vector-polyline</v-icon>\n          Segment\n        </v-btn>\n        <v-btn v-else variant=\"text\" size=\"small\" disabled color=\"grey-darken-1\">\n          <v-icon start>mdi-check</v-icon>\n          Done\n        </v-btn>\n\n        <v-tooltip location=\"top\" text=\"Delete Acquisition\">\n          <template v-slot:activator=\"{ props }\">\n            <v-btn v-bind=\"props\" icon variant=\"text\" size=\"small\" color=\"error\" class=\"ml-1\" @click=\"deleteItem(item)\">\n              <v-icon>mdi-delete-outline</v-icon>\n            </v-btn>\n          </template>\n        </v-tooltip>\n      </div>\n    </template>\n\n    <template v-slot:no-data>\n      <div class=\"pa-8 text-center text-medium-emphasis\">\n        <v-icon icon=\"mdi-database-off\" size=\"x-large\" class=\"mb-3 text-grey-lighten-1\" />\n        <div class=\"text-body-1\">No acquisitions found</div>\n      </div>\n    </template>\n\n  </v-data-table>\n</template>\n\n\n<script>\n  export default {\n  props: {\n    msg: {\n      type: Object,\n      default: () => ({})\n    }\n  },\n  data() {\n    return {\n      search: \"\",\n      items: [],\n      loading: true,\n      selectedRow: null,\n      \n      itemsPerPage: 100,\n\n      headers: [\n        { title: \"Date\", sortable: false,key: \"date\" },\n        { title: \"Project\", sortable: false,key: \"project_name\" },\n        { title: \"Sample\", sortable: false,key: \"sample_id\" },\n        { title: \"Acq ID\", sortable: false,key: \"acquisition_id\" },\n        { title: \"Operator\", sortable: false,key: \"operator_name\" },\n        { title: \"Count\", sortable: false,key: \"image_acquired_count\", align: \"end\" },\n        { title: \"Gallery\", key: \"gallery\", sortable: false, align: \"end\" },\n        { title: \"Actions\", key: \"actions\", sortable: false, align: \"end\", width: \"180px\" }\n      ]\n    };\n  },\n\n  computed: {\n    filteredItems() {\n      return this.items.filter(i => Number(i.image_acquired_count) > 0);\n    }\n  },\n\n  mounted() {\n    if (this.msg?.payload && Array.isArray(this.msg.payload)) {\n      this.items = this.msg.payload;\n      this.loading = false;\n    }\n  },\n\n  watch: {\n    msg: {\n      deep: true,\n      immediate: true,\n      handler(value) {\n        if (!value?.payload) return;\n        const payload = value.payload;\n\n        const clearing =\n          payload === \"clear\" ||\n          payload?.clear === true ||\n          (Array.isArray(payload) && payload.length === 0);\n\n        if (clearing) {\n          this.items = [];\n          this.selectedRow = null;\n          this.loading = true;\n          setTimeout(() => (this.loading = false), 300);\n          return;\n        }\n\n        if (Array.isArray(payload)) {\n          this.items = payload;\n          this.loading = false;\n        }\n      }\n    }\n  },\n\n  methods: {\n    formatDate(dateString) {\n      if (!dateString) return '';\n      const date = new Date(dateString);\n      if (isNaN(date.getTime())) return dateString;\n      \n      return date.toLocaleString('en-US', {\n        month: 'short',\n        day: 'numeric',\n        year: 'numeric',\n        hour: '2-digit',\n        minute: '2-digit',\n      });\n    },\n\n    segment(item) {\n      this.selectedRow = item.acquisition_id;\n      if (typeof this.send === 'function') {\n        this.send({\n          topic: \"segment_request\",\n          payload: item\n        });\n      } else {\n         console.warn(\"The 'send' method is not defined.\");\n      }\n    },\n\n    deleteItem(item) {\n      const index = this.items.indexOf(item);\n      if (index > -1) {\n        this.items.splice(index, 1);\n      }\n\n      if (typeof this.send === 'function') {\n        this.send({\n          topic: \"delete_request\",\n          payload: { \n            acquisition_id: item.acquisition_id,\n            ...item \n          }\n        });\n      } else {\n         console.warn(\"The 'send' method is not defined.\");\n      }\n    },\n\n    getRowClass(wrapper) {\n      const item = wrapper.raw ?? wrapper;\n      return {\n        \"bg-blue-lighten-5\": item.acquisition_id === this.selectedRow\n      };\n    }\n  }\n};\n</script>",
+        "format": "<template>\n  <!-- Selection toolbar -->\n  <div v-if=\"selected.length > 0\" class=\"d-flex align-center pa-2 bg-blue-lighten-5 rounded mb-2\">\n    <span class=\"text-body-2 font-weight-medium mr-4\">\n      {{ selected.length }} selected\n    </span>\n    <v-btn color=\"primary\" variant=\"flat\" size=\"small\" @click=\"segmentSelected\" :disabled=\"queueActive\">\n      <v-icon start>mdi-play-box-multiple-outline</v-icon>\n      Segment Selected\n    </v-btn>\n    <v-btn variant=\"text\" size=\"small\" class=\"ml-2\" @click=\"selected = []\">\n      Clear selection\n    </v-btn>\n  </div>\n\n  <!-- Queue summary bar -->\n  <v-alert v-if=\"queueActive\" type=\"info\" variant=\"tonal\" density=\"compact\" class=\"mb-2\">\n    <div class=\"d-flex align-center justify-space-between\">\n      <span>\n        Queue: {{ queueResults.filter(r => r.status === 'done').length }} done,\n        {{ queueCurrentPath ? '1 processing' : '0 processing' }},\n        {{ queuePending.length }} pending\n      </span>\n      <v-btn v-if=\"queuePending.length > 0\" variant=\"text\" size=\"small\" color=\"warning\" @click=\"cancelAll\">\n        Cancel pending\n      </v-btn>\n    </div>\n  </v-alert>\n\n  <v-data-table fluid :headers=\"headers\" :items=\"filteredItems\" :search=\"search\" :loading=\"loading\"\n    item-value=\"path\" density=\"comfortable\" hover :item-class=\"getRowClass\"\n    v-model:items-per-page=\"itemsPerPage\"\n    show-select v-model=\"selected\" return-object>\n\n    <template v-slot:loading>\n      <v-skeleton-loader type=\"table-row@5\" />\n    </template>\n\n    <template v-slot:item.date=\"{ item }\">\n      <span class=\"text-body-2 font-weight-medium text-high-emphasis\">\n        {{ formatDate(item.date) }}\n      </span>\n    </template>\n\n    <template v-slot:item.project_name=\"{ item }\">\n      <span class=\"text-body-2 font-weight-medium text-high-emphasis\">\n        {{ item.project_name }}\n      </span>\n    </template>\n\n    <template v-slot:item.sample_id=\"{ item }\">\n      <span class=\"text-body-2 text-high-emphasis\">\n        {{ item.sample_id }}\n      </span>\n    </template>\n\n    <template v-slot:item.acquisition_id=\"{ item }\">\n      <code class=\"bg-grey-lighten-4 px-2 py-1 rounded text-caption text-grey-darken-3\">\n        {{ item.acquisition_id }}\n      </code>\n    </template>\n\n    <template v-slot:item.operator_name=\"{ item }\">\n      <span class=\"text-body-2 text-high-emphasis\">\n        {{ item.operator_name }}\n      </span>\n    </template>\n\n    <template v-slot:item.image_acquired_count=\"{ item }\">\n      <div class=\"d-flex align-center justify-end text-medium-emphasis\">\n        <v-icon size=\"small\" class=\"mr-2\">mdi-image-outline</v-icon>\n        <span class=\"font-weight-bold text-high-emphasis\">\n          {{ Number(item.image_acquired_count || 0).toLocaleString() }}\n        </span>\n      </div>\n    </template>\n\n    <template v-slot:item.gallery=\"{ item }\">\n      <v-btn variant=\"text\" size=\"small\" color=\"grey-darken-1\" :href=\"item.gallery\" target=\"_blank\">\n        <v-icon start>mdi-folder-image</v-icon>\n        Gallery\n      </v-btn>\n    </template>\n\n    <template v-slot:item.actions=\"{ item }\">\n      <div class=\"d-flex justify-end align-center\">\n        <!-- Queue status chips -->\n        <v-chip v-if=\"getQueueStatus(item) === 'processing'\" color=\"primary\" size=\"small\" variant=\"flat\" class=\"mr-2\">\n          <v-progress-circular indeterminate size=\"12\" width=\"2\" class=\"mr-1\"></v-progress-circular>\n          Segmenting\n        </v-chip>\n        <v-chip v-else-if=\"getQueueStatus(item) === 'queued'\" color=\"grey\" size=\"small\" variant=\"tonal\" class=\"mr-2\">\n          <v-icon start size=\"small\">mdi-clock-outline</v-icon>\n          Queued\n          <v-btn icon variant=\"text\" size=\"x-small\" class=\"ml-1\" @click.stop=\"cancelQueued(item)\">\n            <v-icon size=\"small\">mdi-close</v-icon>\n          </v-btn>\n        </v-chip>\n        <v-chip v-else-if=\"getQueueStatus(item) === 'done'\" color=\"success\" size=\"small\" variant=\"tonal\" class=\"mr-2\">\n          <v-icon start size=\"small\">mdi-check</v-icon>\n          Done\n        </v-chip>\n        <v-chip v-else-if=\"getQueueStatus(item) === 'error'\" color=\"error\" size=\"small\" variant=\"tonal\" class=\"mr-2\">\n          <v-icon start size=\"small\">mdi-alert</v-icon>\n          Error\n        </v-chip>\n\n        <!-- Single segment button (disabled when queue active) -->\n        <v-btn v-if=\"!item.is_segmented && !getQueueStatus(item)\" variant=\"text\" size=\"small\" color=\"primary\"\n          @click=\"segment(item)\" :disabled=\"queueActive\">\n          <v-icon start>mdi-vector-polyline</v-icon>\n          Segment\n        </v-btn>\n        <v-btn v-else-if=\"item.is_segmented && !getQueueStatus(item)\" variant=\"text\" size=\"small\" disabled color=\"grey-darken-1\">\n          <v-icon start>mdi-check</v-icon>\n          Done\n        </v-btn>\n\n        <v-tooltip location=\"top\" text=\"Delete Acquisition\">\n          <template v-slot:activator=\"{ props }\">\n            <v-btn v-bind=\"props\" icon variant=\"text\" size=\"small\" color=\"error\" class=\"ml-1\" @click=\"deleteItem(item)\">\n              <v-icon>mdi-delete-outline</v-icon>\n            </v-btn>\n          </template>\n        </v-tooltip>\n      </div>\n    </template>\n\n    <template v-slot:no-data>\n      <div class=\"pa-8 text-center text-medium-emphasis\">\n        <v-icon icon=\"mdi-database-off\" size=\"x-large\" class=\"mb-3 text-grey-lighten-1\" />\n        <div class=\"text-body-1\">No acquisitions found</div>\n      </div>\n    </template>\n\n  </v-data-table>\n</template>\n\n\n<script>\n  export default {\n  props: {\n    msg: {\n      type: Object,\n      default: () => ({})\n    }\n  },\n  data() {\n    return {\n      search: \"\",\n      items: [],\n      loading: true,\n      selectedRow: null,\n      selected: [],\n      itemsPerPage: 100,\n\n      // Queue state (updated via messages from Queue Processor)\n      queueActive: false,\n      queueCurrentPath: null,\n      queuePending: [],\n      queueResults: [],\n\n      headers: [\n        { title: \"Date\", sortable: false, key: \"date\" },\n        { title: \"Project\", sortable: false, key: \"project_name\" },\n        { title: \"Sample\", sortable: false, key: \"sample_id\" },\n        { title: \"Acq ID\", sortable: false, key: \"acquisition_id\" },\n        { title: \"Operator\", sortable: false, key: \"operator_name\" },\n        { title: \"Count\", sortable: false, key: \"image_acquired_count\", align: \"end\" },\n        { title: \"Gallery\", key: \"gallery\", sortable: false, align: \"end\" },\n        { title: \"Actions\", key: \"actions\", sortable: false, align: \"end\", width: \"280px\" }\n      ]\n    };\n  },\n\n  computed: {\n    filteredItems() {\n      return this.items.filter(i => Number(i.image_acquired_count) > 0);\n    }\n  },\n\n  mounted() {\n    if (this.msg?.payload && Array.isArray(this.msg.payload)) {\n      this.items = this.msg.payload;\n      this.loading = false;\n    }\n  },\n\n  watch: {\n    msg: {\n      deep: true,\n      immediate: true,\n      handler(value) {\n        if (!value?.payload) return;\n        const payload = value.payload;\n\n        // Handle queue status messages\n        if (value.topic === \"queue_status\") {\n          this.queueActive = payload.active;\n          this.queueCurrentPath = payload.current_path;\n          this.queuePending = payload.queued_paths || [];\n          this.queueResults = payload.results || [];\n          if (!payload.active) {\n            this.selected = [];\n          }\n          return;\n        }\n\n        // Handle queue progress messages\n        if (value.topic === \"queue_progress\") {\n          if (payload.current_path) {\n            this.queueCurrentPath = payload.current_path;\n          }\n          return;\n        }\n\n        const clearing =\n          payload === \"clear\" ||\n          payload?.clear === true ||\n          (Array.isArray(payload) && payload.length === 0);\n\n        if (clearing) {\n          this.items = [];\n          this.selectedRow = null;\n          this.loading = true;\n          setTimeout(() => (this.loading = false), 300);\n          return;\n        }\n\n        if (Array.isArray(payload)) {\n          this.items = payload;\n          this.loading = false;\n        }\n      }\n    }\n  },\n\n  methods: {\n    formatDate(dateString) {\n      if (!dateString) return '';\n      const date = new Date(dateString);\n      if (isNaN(date.getTime())) return dateString;\n\n      return date.toLocaleString('en-US', {\n        month: 'short',\n        day: 'numeric',\n        year: 'numeric',\n        hour: '2-digit',\n        minute: '2-digit',\n      });\n    },\n\n    segment(item) {\n      this.selectedRow = item.acquisition_id;\n      if (typeof this.send === 'function') {\n        this.send({\n          topic: \"segment_request\",\n          payload: item\n        });\n      }\n    },\n\n    segmentSelected() {\n      const unsegmented = this.selected.filter(item => !item.is_segmented);\n      if (unsegmented.length === 0) return;\n\n      if (typeof this.send === 'function') {\n        this.send({\n          topic: \"queue_segment_request\",\n          payload: { items: unsegmented }\n        });\n      }\n    },\n\n    getQueueStatus(item) {\n      if (this.queueCurrentPath === item.path) return \"processing\";\n      if (this.queuePending.includes(item.path)) return \"queued\";\n      const result = this.queueResults.find(r => r.path === item.path);\n      if (result) return result.status;\n      return null;\n    },\n\n    cancelQueued(item) {\n      if (typeof this.send === 'function') {\n        this.send({\n          topic: \"queue_cancel\",\n          payload: { path: item.path }\n        });\n      }\n    },\n\n    cancelAll() {\n      if (typeof this.send === 'function') {\n        this.send({\n          topic: \"queue_cancel_all\",\n          payload: {}\n        });\n      }\n    },\n\n    deleteItem(item) {\n      const index = this.items.indexOf(item);\n      if (index > -1) {\n        this.items.splice(index, 1);\n      }\n\n      if (typeof this.send === 'function') {\n        this.send({\n          topic: \"delete_request\",\n          payload: {\n            acquisition_id: item.acquisition_id,\n            ...item\n          }\n        });\n      }\n    },\n\n    getRowClass(wrapper) {\n      const item = wrapper.raw ?? wrapper;\n      return {\n        \"bg-blue-lighten-5\": item.acquisition_id === this.selectedRow\n      };\n    }\n  }\n};\n</script>",
         "storeOutMessages": true,
         "passthru": true,
         "resendOnRefresh": true,
@@ -4364,11 +4367,16 @@
                 "t": "eq",
                 "v": "delete_request",
                 "vt": "str"
+            },
+            {
+                "t": "regex",
+                "v": "^queue_",
+                "vt": "str"
             }
         ],
         "checkall": "true",
         "repair": false,
-        "outputs": 2,
+        "outputs": 3,
         "x": 430,
         "y": 220,
         "wires": [
@@ -4377,6 +4385,9 @@
             ],
             [
                 "20e38293b7b4fca8"
+            ],
+            [
+                "a1b2c3d4e5f60001"
             ]
         ]
     },
@@ -7935,5 +7946,115 @@
         "x": 470,
         "y": 1100,
         "wires": []
+    },
+    {
+        "id": "a1b2c3d4e5f60001",
+        "type": "switch",
+        "z": "524b7620431210e8",
+        "name": "Route queue topics",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "queue_segment_request",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "queue_cancel",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "queue_cancel_all",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 3,
+        "x": 630,
+        "y": 340,
+        "wires": [
+            [
+                "a1b2c3d4e5f60002"
+            ],
+            [
+                "a1b2c3d4e5f60002"
+            ],
+            [
+                "a1b2c3d4e5f60002"
+            ]
+        ]
+    },
+    {
+        "id": "a1b2c3d4e5f60002",
+        "type": "function",
+        "z": "524b7620431210e8",
+        "name": "Queue Processor",
+        "func": "// Queue Processor - manages the segmentation queue in flow context\n//\n// Inputs: queue_segment_request, queue_confirmed, queue_status_update,\n//         queue_cancel, queue_cancel_all\n// Output 0: MQTT command -> existing segmenter/segment switch\n// Output 1: queue_status -> List of Acquisitions template\n// Output 2: dialog open -> add process_min_ESD -> Dialog\n\nconst topic = msg.topic;\nconst payload = msg.payload;\n\nlet queue = flow.get(\"seg_queue\") || [];\nlet current = flow.get(\"seg_queue_current\") || null;\nlet results = flow.get(\"seg_queue_results\") || [];\nlet active = flow.get(\"seg_queue_active\") || false;\nlet settings = flow.get(\"seg_queue_settings\") || null;\n\nfunction saveState() {\n    flow.set(\"seg_queue\", queue);\n    flow.set(\"seg_queue_current\", current);\n    flow.set(\"seg_queue_results\", results);\n    flow.set(\"seg_queue_active\", active);\n    flow.set(\"seg_queue_settings\", settings);\n}\n\nfunction buildStatusMsg() {\n    return {\n        topic: \"queue_status\",\n        payload: {\n            active: active,\n            current_path: current ? current.item.path : null,\n            queued_paths: queue.map(q => q.item.path),\n            results: results\n        }\n    };\n}\n\nfunction processNext() {\n    if (queue.length === 0) {\n        active = false;\n        current = null;\n        saveState();\n        return [[null], [buildStatusMsg()], [null]];\n    }\n\n    current = queue.shift();\n    saveState();\n\n    const mqttMsg = {\n        topic: \"segmenter/segment\",\n        payload: {\n            action: \"segment\",\n            path: [current.item.path],\n            settings: {\n                force: false,\n                recursive: true,\n                ecotaxa: true,\n                keep: true,\n                process_id: 1,\n                process_min_ESD: settings ? settings.process_min_ESD : 20,\n            },\n            dataset: {\n                project_name: current.item.project_name,\n                sample_id: current.item.sample_id,\n                acquisition_id: current.item.acquisition_id,\n                operator_name: current.item.operator_name,\n                image_acquired_count: current.item.image_acquired_count,\n                path: current.item.path,\n            }\n        }\n    };\n\n    return [[mqttMsg], [buildStatusMsg()], [null]];\n}\n\n// --- Handle incoming messages ---\n\nif (topic === \"queue_segment_request\") {\n    // Multi-select request from table. Open batch dialog for ESD confirmation.\n    flow.set(\"seg_queue_pending_items\", payload.items);\n\n    const representative = payload.items[0];\n    const dialogMsg = {\n        topic: \"segment_request\",\n        payload: {\n            ...representative,\n            is_segmented: false,\n            open_dialog: true,\n            batch_mode: true,\n            batch_count: payload.items.length,\n            batch_items: payload.items,\n            process_min_ESD: global.get(\"process_min_ESD\") || 20\n        }\n    };\n    return [[null], [null], [dialogMsg]];\n\n} else if (topic === \"queue_confirmed\") {\n    // Dialog confirmed with settings - start the queue\n    const items = payload.items;\n    const confirmedSettings = { process_min_ESD: payload.process_min_ESD };\n\n    const toQueue = items.filter(item => !item.is_segmented);\n\n    if (toQueue.length === 0) {\n        return [[null], [buildStatusMsg()], [null]];\n    }\n\n    queue = toQueue.map(item => ({ item: item }));\n    results = [];\n    active = true;\n    settings = confirmedSettings;\n    saveState();\n\n    return processNext();\n\n} else if (topic === \"queue_status_update\") {\n    const status = (payload.status || \"\").toLowerCase();\n\n    if (!active || !current) {\n        return [[null], [null], [null]];\n    }\n\n    // Handle retry after busy\n    if (flow.get(\"seg_queue_retry_pending\") && (status.includes(\"done\") || status.includes(\"ready\"))) {\n        flow.set(\"seg_queue_retry_pending\", false);\n        return processNext();\n    }\n\n    if (status.includes(\"done\")) {\n        results.push({ path: current.item.path, acquisition_id: current.item.acquisition_id, status: \"done\" });\n        current = null;\n        saveState();\n        return processNext();\n\n    } else if (status.includes(\"exception\") || status.includes(\"error\")) {\n        results.push({ path: current.item.path, acquisition_id: current.item.acquisition_id, status: \"error\", error: payload.status });\n        current = null;\n        saveState();\n        return processNext();\n\n    } else if (status.includes(\"interrupted\") || status.includes(\"dead\")) {\n        const errMsg = status.includes(\"dead\") ? \"Segmenter process died\" : \"Interrupted\";\n        results.push({ path: current.item.path, acquisition_id: current.item.acquisition_id, status: \"error\", error: errMsg });\n        active = false;\n        current = null;\n        queue = [];\n        saveState();\n        return [[null], [buildStatusMsg()], [null]];\n\n    } else if (status.includes(\"busy\")) {\n        // Segmenter busy with another task. Re-enqueue current and wait.\n        queue.unshift(current);\n        current = null;\n        flow.set(\"seg_queue_retry_pending\", true);\n        saveState();\n        return [[null], [buildStatusMsg()], [null]];\n    }\n\n    // Progress messages - just update status display\n    return [[null], [buildStatusMsg()], [null]];\n\n} else if (topic === \"queue_cancel\") {\n    queue = queue.filter(q => q.item.path !== payload.path);\n    saveState();\n    return [[null], [buildStatusMsg()], [null]];\n\n} else if (topic === \"queue_cancel_all\") {\n    queue = [];\n    saveState();\n    return [[null], [buildStatusMsg()], [null]];\n}\n\nreturn [[null], [null], [null]];",
+        "outputs": 3,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 850,
+        "y": 340,
+        "wires": [
+            [
+                "60ae065050fc2ad3"
+            ],
+            [
+                "8a22543633712279"
+            ],
+            [
+                "6e43a35e8dcf2b3b"
+            ]
+        ]
+    },
+    {
+        "id": "a1b2c3d4e5f60003",
+        "type": "function",
+        "z": "524b7620431210e8",
+        "name": "Queue Status Handler",
+        "func": "// Queue Status Handler\n// Receives status/segmenter MQTT messages, forwards to Queue Processor\n// when queue is active. Also sends progress to the table.\n\nconst active = flow.get(\"seg_queue_active\") || false;\nconst current = flow.get(\"seg_queue_current\") || null;\nconst retryPending = flow.get(\"seg_queue_retry_pending\") || false;\n\nif (!active && !current && !retryPending) {\n    return null;\n}\n\nconst queueMsg = {\n    topic: \"queue_status_update\",\n    payload: msg.payload\n};\n\nconst tableMsg = {\n    topic: \"queue_progress\",\n    payload: {\n        ...msg.payload,\n        current_path: current ? current.item.path : null\n    }\n};\n\nreturn [[queueMsg], [tableMsg]];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 370,
+        "y": 400,
+        "wires": [
+            [
+                "a1b2c3d4e5f60002"
+            ],
+            [
+                "8a22543633712279"
+            ]
+        ]
+    },
+    {
+        "id": "a1b2c3d4e5f60005",
+        "type": "function",
+        "z": "524b7620431210e8",
+        "name": "Queue Status Refresh",
+        "func": "// Queue Status Refresh - sends current queue state to the table on page load\n\nconst queue = flow.get(\"seg_queue\") || [];\nconst current = flow.get(\"seg_queue_current\") || null;\nconst results = flow.get(\"seg_queue_results\") || [];\nconst active = flow.get(\"seg_queue_active\") || false;\n\nmsg = {\n    topic: \"queue_status\",\n    payload: {\n        active: active,\n        current_path: current ? current.item.path : null,\n        queued_paths: queue.map(q => q.item.path),\n        results: results\n    }\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 370,
+        "y": 460,
+        "wires": [
+            [
+                "8a22543633712279"
+            ]
+        ]
     }
 ]
