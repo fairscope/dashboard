@@ -24,7 +24,7 @@ git push
 
 ## Read and Write Data in global.json
 
-Data is stored in a file located at: [`/home/pi/PlanktoScope/node-red/context/global/global.json`](http://planktoscope.local/admin/fs/files/home/pi/PlanktoScope/node-red/context/global/global.json).
+Data is stored in a file located at: [`PlanktoScope/node-red/context/global/global.json`](http://planktoscope.local/admin/fs/files/opt/PlanktoScope/node-red/context/global/global.json).
 
 ### Read Data
 
