@@ -447,11 +447,12 @@
         "nodes": [
             "d5950445bf78c0c6",
             "36a787c8463c3fab",
-            "d25760aa70fd1524"
+            "d25760aa70fd1524",
+            "c7339069e67d661f"
         ],
         "x": 994,
         "y": 499,
-        "w": 412,
+        "w": 432,
         "h": 142
     },
     {
@@ -470,11 +471,12 @@
         "nodes": [
             "9203a825fc1c63e4",
             "110801015a0ec067",
-            "9d2be08e52de0394"
+            "9d2be08e52de0394",
+            "70532a369a91f953"
         ],
         "x": 994,
         "y": 659,
-        "w": 412,
+        "w": 452,
         "h": 142
     },
     {
@@ -7947,7 +7949,9 @@
         "x": 1120,
         "y": 600,
         "wires": [
-            []
+            [
+                "c7339069e67d661f"
+            ]
         ]
     },
     {
@@ -8021,7 +8025,9 @@
         "x": 1130,
         "y": 760,
         "wires": [
-            []
+            [
+                "70532a369a91f953"
+            ]
         ]
     },
     {
@@ -8127,6 +8133,40 @@
         "statusType": "auto",
         "x": 470,
         "y": 1100,
+        "wires": []
+    },
+    {
+        "id": "c7339069e67d661f",
+        "type": "debug",
+        "z": "e6d820ba0f4f184e",
+        "g": "0a51b211ebbb9873",
+        "name": "debug 9",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1320,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "70532a369a91f953",
+        "type": "debug",
+        "z": "e6d820ba0f4f184e",
+        "g": "ef4667eb73b18227",
+        "name": "debug 11",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1340,
+        "y": 760,
         "wires": []
     },
     {
@@ -8362,7 +8402,22 @@
         "x": 380,
         "y": 60,
         "wires": [
-            []
+            [
+                "60e52bb45a6e0149"
+            ]
+        ]
+    },
+    {
+        "id": "60e52bb45a6e0149",
+        "type": "list segmentations",
+        "z": "6153812e0dc97be8",
+        "name": "",
+        "x": 370,
+        "y": 120,
+        "wires": [
+            [
+                "a11d1717f0a9e040"
+            ]
         ]
     }
 ]
