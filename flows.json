@@ -5785,9 +5785,7 @@
         "x": 440,
         "y": 180,
         "wires": [
-            [
-                "205e01594aafdf52"
-            ]
+            []
         ]
     },
     {
@@ -5873,32 +5871,6 @@
         ]
     },
     {
-        "id": "205e01594aafdf52",
-        "type": "ui-template",
-        "z": "4fdbd7bacb797c5a",
-        "group": "",
-        "page": "",
-        "ui": "",
-        "name": "List of Segmentation",
-        "order": 1,
-        "width": 0,
-        "height": 0,
-        "head": "",
-        "format": "<template>\n\n    <!-- Data Table -->\n    <v-data-table\n        fluid\n        :headers=\"headers\"\n        :items=\"items\"\n        :search=\"search\"\n        :loading=\"loading\"\n        item-value=\"acquisition_id\"\n        item-key=\"acquisition_id\"  \n        density=\"comfortable\"\n        hover\n        :item-class=\"getRowClass\"\n    >\n        \n        <template v-slot:loading>\n          <v-skeleton-loader type=\"table-row@5\"></v-skeleton-loader>\n        </template>\n\n        <!-- Project -->\n        <template v-slot:item.project_name=\"{ item }\">\n          <span class=\"font-weight-medium text-body-2 text-high-emphasis\">\n            {{ item.project_name }}\n          </span>\n        </template>\n\n        <!-- Sample -->\n        <template v-slot:item.sample_id=\"{ item }\">\n          <span class=\"text-body-2 text-high-emphasis\">\n            {{ item.sample_id }}\n          </span>\n        </template>\n\n        <!-- Acquisition ID -->\n        <template v-slot:item.acquisition_id=\"{ item }\">\n          <code class=\"text-grey-darken-3 bg-grey-lighten-4 px-2 py-1 rounded text-caption font-weight-medium\">\n            {{ item.acquisition_id }}\n          </code>\n        </template>\n\n        <!-- Objects Count -->\n        <template v-slot:item.image_acquired_count=\"{ item }\">\n          <div class=\"d-flex align-center justify-end text-medium-emphasis\">\n            <v-icon size=\"small\" class=\"mr-2\">mdi-image-outline</v-icon>\n            <span class=\"font-weight-bold text-high-emphasis\">\n              {{ Number(item.image_acquired_count || 0).toLocaleString() }}\n            </span>\n          </div>\n        </template>\n\n        <!-- View Gallery -->\n        <template v-slot:item.gallery=\"{ item }\">\n          <v-btn\n            v-if=\"item.gallery\"\n            variant=\"text\"\n            size=\"small\"\n            color=\"grey-darken-1\"\n            :href=\"item.gallery\"\n            target=\"_blank\"\n          >\n            <v-icon start>mdi-image-multiple</v-icon>\n            Gallery\n          </v-btn>\n        </template>\n\n        <!-- Download Zip -->\n        <template v-slot:item.export=\"{ item }\">\n          <v-btn\n            v-if=\"item.export\"\n            variant=\"text\"\n            size=\"small\"\n            color=\"grey-darken-1\"\n            @click=\"fbDownload(item.export)\"\n          >\n            <v-icon start>mdi-download</v-icon>\n            .zip\n          </v-btn>\n        </template>\n\n        <!-- Visualize -->\n        <template v-slot:item.actions=\"{ item }\">\n          <v-btn\n            variant=\"text\"\n            size=\"small\"\n            color=\"primary\"\n            class=\"text-capitalize font-weight-medium\"\n            @click=\"selectAcquisition(item)\"\n          >\n            <v-icon start>mdi-chart-scatter-plot-hexbin</v-icon>\n            Visualize\n          </v-btn>\n        </template>\n\n        <!-- No data -->\n        <template v-slot:no-data>\n          <div class=\"pa-8 text-center text-medium-emphasis\">\n            <v-icon icon=\"mdi-database-off\" size=\"x-large\" class=\"mb-3 text-grey-lighten-1\"></v-icon>\n            <div class=\"text-body-1\">No acquisitions found</div>\n          </div>\n        </template>\n\n    </v-data-table>\n</template>\n\n<style scoped>\n.live-pulse {\n  animation: pulse 2s infinite;\n}\n@keyframes pulse {\n  0%, 100% { opacity: 1; }\n  50% { opacity: 0.6; }\n}\n</style>\n\n<script>\nexport default {\n  data() {\n    return {\n      search: \"\",\n      fbToken: \"\",\n      items: [],\n      loading: true,\n      selectedRow: null,\n      selectedItem: null,\n      liveMode: false,\n      refreshInterval: 5,\n      refreshTimer: null,\n\n      headers: [\n        { title: \"Project\", key: \"project_name\", sortable: false, align: \"start\" },\n        { title: \"Sample\", key: \"sample_id\", sortable: false, align: \"start\" },\n        { title: \"Acquisition ID\", key: \"acquisition_id\", sortable: false, align: \"start\" },\n        { title: \"Objects Count\", key: \"image_acquired_count\", sortable: false, align: \"end\" },\n        { title: \"Gallery\", key: \"gallery\", sortable: false, align: \"end\" },\n        { title: \"Download\", key: \"export\", sortable: false, align: \"end\" },\n        { title: \"Visualize\", key: \"actions\", sortable: false, align: \"end\", width: \"140px\" }\n      ]\n    };\n  },\n\n  watch: {\n    msg: {\n      deep: true,\n      immediate: true,\n      handler(val) {\n        if (!val || !val.payload) return;\n\n        const payload = val.payload;\n        const isClearing =\n          payload === \"clear\" ||\n          payload?.clear === true ||\n          (Array.isArray(payload) && payload.length === 0);\n\n        if (isClearing) {\n          this.items = [];\n          this.loading = true;\n          this.selectedRow = null;\n          setTimeout(() => { this.loading = false; }, 300);\n          return;\n        }\n\n        if (Array.isArray(payload)) {\n          this.items = payload;\n          this.loading = false;\n        }\n      }\n    }\n  },\n\n  async mounted() {\n    if (this.msg && Array.isArray(this.msg.payload)) {\n      this.items = this.msg.payload;\n      this.loading = false;\n    }\n    try {\n      const r = await fetch('/ps/data/browse/api/login', { method: 'POST' });\n      if (r.ok) this.fbToken = await r.text();\n    } catch (e) { /* token unavailable */ }\n  },\n\n  beforeUnmount() {\n    this.stopLiveRefresh();\n  },\n\n  methods: {\n    manualRefresh() {\n      this.loading = true;\n      this.send({ topic: \"refresh_list\", payload: true });\n      setTimeout(() => { this.loading = false; }, 500);\n    },\n\n    selectAcquisition(item) {\n      this.selectedRow = item.acquisition_id;\n      this.selectedItem = item;\n\n      this.send({\n        topic: \"selected_acquisition\",\n        payload: item\n      });\n    },\n\n    toggleLiveMode(enabled) {\n      if (enabled) {\n        this.startLiveRefresh();\n      } else {\n        this.stopLiveRefresh();\n      }\n    },\n\n    startLiveRefresh() {\n      this.stopLiveRefresh();\n      // Refresh gallery immediately if an acquisition is selected\n      if (this.selectedItem) {\n        this.send({ topic: \"selected_acquisition\", payload: this.selectedItem });\n      }\n      // Periodically re-read the TSV to pick up new objects\n      this.refreshTimer = setInterval(() => {\n        if (this.selectedItem) {\n          this.send({ topic: \"selected_acquisition\", payload: this.selectedItem });\n        }\n      }, this.refreshInterval * 1000);\n    },\n\n    stopLiveRefresh() {\n      if (this.refreshTimer) {\n        clearInterval(this.refreshTimer);\n        this.refreshTimer = null;\n      }\n    },\n\n    getRowClass(wrapper) {\n      const item = wrapper.raw ?? wrapper;\n\n      return {\n        \"bg-blue-lighten-5\": item.acquisition_id === this.selectedRow\n      };\n    },\n\n    async fbDownload(url) {\n      if (!url) return;\n      const filename = url.split('/').pop();\n      try {\n        const r = await fetch(url, { headers: this.fbToken ? { 'X-Auth': this.fbToken } : {} });\n        if (!r.ok) { alert(`Download failed: HTTP ${r.status}`); return; }\n        const blob = await r.blob();\n        const objUrl = URL.createObjectURL(blob);\n        const a = document.createElement('a');\n        a.href = objUrl; a.download = filename;\n        document.body.appendChild(a); a.click(); a.remove();\n        setTimeout(() => URL.revokeObjectURL(objUrl), 1000);\n      } catch (e) { alert('Download error: ' + e.message); }\n    }\n  }\n};\n</script>",
-        "storeOutMessages": true,
-        "passthru": false,
-        "resendOnRefresh": true,
-        "templateScope": "local",
-        "className": "",
-        "x": 740,
-        "y": 180,
-        "wires": [
-            [
-                "82532431827450f2"
-            ]
-        ]
-    },
-    {
         "id": "82532431827450f2",
         "type": "switch",
         "z": "4fdbd7bacb797c5a",
@@ -5929,30 +5901,6 @@
             [
                 "51fa556f38fcfaa4"
             ]
-        ]
-    },
-    {
-        "id": "0c7765fa696e0717",
-        "type": "ui-template",
-        "z": "4fdbd7bacb797c5a",
-        "group": "",
-        "page": "",
-        "ui": "",
-        "name": "Infos",
-        "order": 1,
-        "width": 0,
-        "height": 0,
-        "head": "",
-        "format": "<template>\n  <div>\n\n    <!-- SKELETON WHEN LOADING OR CLEARED -->\n    <div v-if=\"loading\" class=\"ps-skeleton\" style=\"height:90px; margin-bottom:12px;\"></div>\n\n    <!-- INVITE MESSAGE -->\n    <div\n      v-else-if=\"!meta.sample_id\"\n      style=\"\n        border-left:4px solid #1976d2;\n        background:#e3f2fd;\n        padding:12px;\n        border-radius:6px;\n        margin:12px;\n        color:#0d47a1;\n        font-size:14px;\n        display:flex;\n        align-items:center;\n        gap:8px;\n      \"\n    >\n      <v-icon color=\"primary\">mdi-information-outline</v-icon>\n      Select a dataset in the table above to display its information.\n    </div>\n\n    <!-- SAMPLE INFO -->\n    <v-row v-else align=\"center\">\n\n      <v-col cols=\"12\" md=\"9\" class=\"border-right\">\n        <div class=\"caption grey--text text-uppercase font-weight-bold mb-1\">\n          Sample Identity\n        </div>\n\n        <div class=\"text-h4 primary--text font-weight-bold\">\n          {{ meta.sample_id }}\n        </div>\n\n        <div class=\"subtitle-1 grey--text text--darken-3 mt-1\">\n          <strong>Project:</strong> {{ meta.project || '--' }}<br>\n          <span class=\"caption\">Acq ID: {{ meta.acq_id || '--' }}</span>\n        </div>\n      </v-col>\n\n      <v-col cols=\"12\" md=\"3\" class=\"text-right\">\n        <a\n          href=\"#\"\n          @click.prevent=\"fbDownload()\"\n          target=\"_blank\"\n          :style=\"{\n            display:'inline-flex',\n            alignItems:'center',\n            gap:'6px',\n            padding:'10px 16px',\n            background: meta.sample_id ? '#1976d2' : '#90caf9',\n            color:'white',\n            borderRadius:'6px',\n            textDecoration:'none',\n            cursor: meta.sample_id ? 'pointer' : 'not-allowed'\n          }\"\n        >\n          <v-icon left>mdi-download</v-icon>\n          Download EcoTaxa .zip\n        </a>\n      </v-col>\n\n    </v-row>\n  </div>\n</template>\n\n<script>\nexport default {\n  data() {\n    return {\n      loading: true,\n      fbToken: '',\n      meta: {\n        sample_id: '',\n        project: '',\n        acq_id: ''\n      }\n    }\n  },\n\n  watch: {\n    msg: {\n      immediate: true,\n      deep: true,\n      handler(val) {\n\n        // --- CLEARING ---\n        if (!val?.payload?.meta || !val.payload.meta.sample_id) {\n          this.loading = false;\n          this.meta = {\n            sample_id: '',\n            project: '',\n            acq_id: ''\n          };\n          return;\n        }\n\n        // --- NORMAL UPDATE ---\n        this.loading = false;\n        this.meta = val.payload.meta;\n      }\n    }\n  },\n\n  async mounted() {\n    try {\n      const r = await fetch('/ps/data/browse/api/login', { method: 'POST' });\n      if (r.ok) this.fbToken = await r.text();\n    } catch (e) { /* token unavailable; download will fail */ }\n  },\n\n  methods: {\n    async fbDownload() {\n      if (!this.meta.sample_id) return;\n      const url = `/ps/data/browse/api/raw/export/ecotaxa/ecotaxa_${this.meta.acq_id}.zip`;\n      const filename = `ecotaxa_${this.meta.acq_id}.zip`;\n      try {\n        const r = await fetch(url, { headers: this.fbToken ? { 'X-Auth': this.fbToken } : {} });\n        if (!r.ok) { alert(`Download failed: HTTP ${r.status}`); return; }\n        const blob = await r.blob();\n        const objUrl = URL.createObjectURL(blob);\n        const a = document.createElement('a');\n        a.href = objUrl; a.download = filename;\n        document.body.appendChild(a); a.click(); a.remove();\n        setTimeout(() => URL.revokeObjectURL(objUrl), 1000);\n      } catch (e) { alert('Download error: ' + e.message); }\n    }\n  },\n\n  computed: {\n    downloadUrl() {\n      if (!this.meta.sample_id) return '#';\n      return `/ps/data/browse/api/raw/export/ecotaxa/ecotaxa_${this.meta.acq_id}.zip`;\n    }\n  }\n}\n</script>\n\n<style>\n/* Skeleton loader consistent with other widgets */\n\n.ps-skeleton {\n  width: 100%;\n  border-radius: 6px;\n  background: linear-gradient(90deg, #e0e0e0, #f5f5f5, #e0e0e0);\n  background-size: 200% 100%;\n  animation: psSkeletonAnim 1.2s infinite;\n}\n\n@keyframes psSkeletonAnim {\n  0% { background-position: 200% 0; }\n  100% { background-position: -200% 0; }\n}\n</style>\n",
-        "storeOutMessages": true,
-        "passthru": true,
-        "resendOnRefresh": true,
-        "templateScope": "local",
-        "className": "",
-        "x": 910,
-        "y": 480,
-        "wires": [
-            []
         ]
     },
     {
@@ -6174,9 +6122,7 @@
         "x": 510,
         "y": 480,
         "wires": [
-            [
-                "0c7765fa696e0717"
-            ]
+            []
         ]
     },
     {
@@ -6440,7 +6386,6 @@
                 "2905bc12edeef503",
                 "5fe97b4a564498ea",
                 "565c6d0f098e5be0",
-                "0c7765fa696e0717",
                 "131aae14607d4830",
                 "9b4aa58f8a37a9d9"
             ]
@@ -6687,9 +6632,7 @@
         "x": 440,
         "y": 180,
         "wires": [
-            [
-                "eb62a19058171fa8"
-            ]
+            []
         ]
     },
     {
@@ -6774,57 +6717,6 @@
         "className": "",
         "x": 920,
         "y": 1000,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "eb62a19058171fa8",
-        "type": "ui-template",
-        "z": "a7825c4c81ad20a0",
-        "group": "",
-        "page": "",
-        "ui": "",
-        "name": "List of Segmentation",
-        "order": 2,
-        "width": 0,
-        "height": 0,
-        "head": "",
-        "format": "<template>\n\n    <!-- Data Table -->\n    <v-data-table\n        fluid\n        :headers=\"headers\"\n        :items=\"items\"\n        :search=\"search\"\n        :loading=\"loading\"\n        item-value=\"acquisition_id\"\n        item-key=\"acquisition_id\"  \n        density=\"comfortable\"\n        hover\n        :item-class=\"getRowClass\"\n    >\n        \n        <template v-slot:loading>\n          <v-skeleton-loader type=\"table-row@5\"></v-skeleton-loader>\n        </template>\n\n        <!-- Project -->\n        <template v-slot:item.project_name=\"{ item }\">\n          <span class=\"font-weight-medium text-body-2 text-high-emphasis\">\n            {{ item.project_name }}\n          </span>\n        </template>\n\n        <!-- Sample -->\n        <template v-slot:item.sample_id=\"{ item }\">\n          <span class=\"text-body-2 text-high-emphasis\">\n            {{ item.sample_id }}\n          </span>\n        </template>\n\n        <!-- Acquisition ID -->\n        <template v-slot:item.acquisition_id=\"{ item }\">\n          <code class=\"text-grey-darken-3 bg-grey-lighten-4 px-2 py-1 rounded text-caption font-weight-medium\">\n            {{ item.acquisition_id }}\n          </code>\n        </template>\n\n        <!-- Objects Count -->\n        <template v-slot:item.image_acquired_count=\"{ item }\">\n          <div class=\"d-flex align-center justify-end text-medium-emphasis\">\n            <v-icon size=\"small\" class=\"mr-2\">mdi-image-outline</v-icon>\n            <span class=\"font-weight-bold text-high-emphasis\">\n              {{ Number(item.image_acquired_count || 0).toLocaleString() }}\n            </span>\n          </div>\n        </template>\n\n        <!-- View Gallery -->\n        <template v-slot:item.gallery=\"{ item }\">\n          <v-btn\n            v-if=\"item.gallery\"\n            variant=\"text\"\n            size=\"small\"\n            color=\"grey-darken-1\"\n            :href=\"item.gallery\"\n            target=\"_blank\"\n          >\n            <v-icon start>mdi-image-multiple</v-icon>\n            Gallery\n          </v-btn>\n        </template>\n\n        <!-- Download Zip -->\n        <template v-slot:item.export=\"{ item }\">\n          <v-btn\n            v-if=\"item.export\"\n            variant=\"text\"\n            size=\"small\"\n            color=\"grey-darken-1\"\n            @click=\"fbDownload(item.export)\"\n          >\n            <v-icon start>mdi-download</v-icon>\n            .zip\n          </v-btn>\n        </template>\n\n        <!-- Visualize -->\n        <template v-slot:item.actions=\"{ item }\">\n          <v-btn\n            variant=\"text\"\n            size=\"small\"\n            color=\"primary\"\n            class=\"text-capitalize font-weight-medium\"\n            @click=\"selectAcquisition(item)\"\n          >\n            <v-icon start>mdi-chart-scatter-plot-hexbin</v-icon>\n            Visualize\n          </v-btn>\n        </template>\n\n        <!-- No data -->\n        <template v-slot:no-data>\n          <div class=\"pa-8 text-center text-medium-emphasis\">\n            <v-icon icon=\"mdi-database-off\" size=\"x-large\" class=\"mb-3 text-grey-lighten-1\"></v-icon>\n            <div class=\"text-body-1\">No acquisitions found</div>\n          </div>\n        </template>\n\n    </v-data-table>\n</template>\n\n<style scoped>\n.live-pulse {\n  animation: pulse 2s infinite;\n}\n@keyframes pulse {\n  0%, 100% { opacity: 1; }\n  50% { opacity: 0.6; }\n}\n</style>\n\n<script>\nexport default {\n  data() {\n    return {\n      search: \"\",\n      fbToken: \"\",\n      items: [],\n      loading: true,\n      selectedRow: null,\n      selectedItem: null,\n      liveMode: false,\n      refreshInterval: 5,\n      refreshTimer: null,\n\n      headers: [\n        { title: \"Project\", key: \"project_name\", sortable: false, align: \"start\" },\n        { title: \"Sample\", key: \"sample_id\", sortable: false, align: \"start\" },\n        { title: \"Acquisition ID\", key: \"acquisition_id\", sortable: false, align: \"start\" },\n        { title: \"Objects Count\", key: \"image_acquired_count\", sortable: false, align: \"end\" },\n        { title: \"Gallery\", key: \"gallery\", sortable: false, align: \"end\" },\n        { title: \"Download\", key: \"export\", sortable: false, align: \"end\" },\n        { title: \"Visualize\", key: \"actions\", sortable: false, align: \"end\", width: \"140px\" }\n      ]\n    };\n  },\n\n  watch: {\n    msg: {\n      deep: true,\n      immediate: true,\n      handler(val) {\n        if (!val || !val.payload) return;\n\n        const payload = val.payload;\n        const isClearing =\n          payload === \"clear\" ||\n          payload?.clear === true ||\n          (Array.isArray(payload) && payload.length === 0);\n\n        if (isClearing) {\n          this.items = [];\n          this.loading = true;\n          this.selectedRow = null;\n          setTimeout(() => { this.loading = false; }, 300);\n          return;\n        }\n\n        if (Array.isArray(payload)) {\n          this.items = payload;\n          this.loading = false;\n        }\n      }\n    }\n  },\n\n  async mounted() {\n    if (this.msg && Array.isArray(this.msg.payload)) {\n      this.items = this.msg.payload;\n      this.loading = false;\n    }\n    try {\n      const r = await fetch('/ps/data/browse/api/login', { method: 'POST' });\n      if (r.ok) this.fbToken = await r.text();\n    } catch (e) { /* token unavailable */ }\n  },\n\n  beforeUnmount() {\n    this.stopLiveRefresh();\n  },\n\n  methods: {\n    manualRefresh() {\n      this.loading = true;\n      this.send({ topic: \"refresh_list\", payload: true });\n      setTimeout(() => { this.loading = false; }, 500);\n    },\n\n    selectAcquisition(item) {\n      this.selectedRow = item.acquisition_id;\n      this.selectedItem = item;\n\n      this.send({\n        topic: \"selected_acquisition\",\n        payload: item\n      });\n    },\n\n    toggleLiveMode(enabled) {\n      if (enabled) {\n        this.startLiveRefresh();\n      } else {\n        this.stopLiveRefresh();\n      }\n    },\n\n    startLiveRefresh() {\n      this.stopLiveRefresh();\n      // Refresh gallery immediately if an acquisition is selected\n      if (this.selectedItem) {\n        this.send({ topic: \"selected_acquisition\", payload: this.selectedItem });\n      }\n      // Periodically re-read the TSV to pick up new objects\n      this.refreshTimer = setInterval(() => {\n        if (this.selectedItem) {\n          this.send({ topic: \"selected_acquisition\", payload: this.selectedItem });\n        }\n      }, this.refreshInterval * 1000);\n    },\n\n    stopLiveRefresh() {\n      if (this.refreshTimer) {\n        clearInterval(this.refreshTimer);\n        this.refreshTimer = null;\n      }\n    },\n\n    getRowClass(wrapper) {\n      const item = wrapper.raw ?? wrapper;\n\n      return {\n        \"bg-blue-lighten-5\": item.acquisition_id === this.selectedRow\n      };\n    },\n\n    async fbDownload(url) {\n      if (!url) return;\n      const filename = url.split('/').pop();\n      try {\n        const r = await fetch(url, { headers: this.fbToken ? { 'X-Auth': this.fbToken } : {} });\n        if (!r.ok) { alert(`Download failed: HTTP ${r.status}`); return; }\n        const blob = await r.blob();\n        const objUrl = URL.createObjectURL(blob);\n        const a = document.createElement('a');\n        a.href = objUrl; a.download = filename;\n        document.body.appendChild(a); a.click(); a.remove();\n        setTimeout(() => URL.revokeObjectURL(objUrl), 1000);\n      } catch (e) { alert('Download error: ' + e.message); }\n    }\n  }\n};\n</script>",
-        "storeOutMessages": true,
-        "passthru": false,
-        "resendOnRefresh": true,
-        "templateScope": "local",
-        "className": "",
-        "x": 700,
-        "y": 180,
-        "wires": [
-            [
-                "63121349be3135fd",
-                "68ec210262cb873a"
-            ]
-        ]
-    },
-    {
-        "id": "ce136c26883f5d99",
-        "type": "ui-template",
-        "z": "a7825c4c81ad20a0",
-        "group": "",
-        "page": "",
-        "ui": "",
-        "name": "Infos",
-        "order": 2,
-        "width": 0,
-        "height": 0,
-        "head": "",
-        "format": "<template>\n  <div>\n\n    <!-- SKELETON WHEN LOADING OR CLEARED -->\n    <div v-if=\"loading\" class=\"ps-skeleton\" style=\"height:90px; margin-bottom:12px;\"></div>\n\n    <!-- INVITE MESSAGE -->\n    <div\n      v-else-if=\"!meta.sample_id\"\n      style=\"\n        border-left:4px solid #1976d2;\n        background:#e3f2fd;\n        padding:12px;\n        border-radius:6px;\n        margin:12px;\n        color:#0d47a1;\n        font-size:14px;\n        display:flex;\n        align-items:center;\n        gap:8px;\n      \"\n    >\n      <v-icon color=\"primary\">mdi-information-outline</v-icon>\n      Select a dataset in the table above to display its information.\n    </div>\n\n    <!-- SAMPLE INFO -->\n    <v-row v-else align=\"center\">\n\n      <v-col cols=\"12\" md=\"9\" class=\"border-right\">\n        <div class=\"caption grey--text text-uppercase font-weight-bold mb-1\">\n          Sample Identity\n        </div>\n\n        <div class=\"text-h4 primary--text font-weight-bold\">\n          {{ meta.sample_id }}\n        </div>\n\n        <div class=\"subtitle-1 grey--text text--darken-3 mt-1\">\n          <strong>Project:</strong> {{ meta.project || '--' }}<br>\n          <span class=\"caption\">Acq ID: {{ meta.acq_id || '--' }}</span>\n        </div>\n      </v-col>\n\n      <v-col cols=\"12\" md=\"3\" class=\"text-right\">\n        <a\n          href=\"#\"\n          @click.prevent=\"fbDownload()\"\n          target=\"_blank\"\n          :style=\"{\n            display:'inline-flex',\n            alignItems:'center',\n            gap:'6px',\n            padding:'10px 16px',\n            background: meta.sample_id ? '#1976d2' : '#90caf9',\n            color:'white',\n            borderRadius:'6px',\n            textDecoration:'none',\n            cursor: meta.sample_id ? 'pointer' : 'not-allowed'\n          }\"\n        >\n          <v-icon left>mdi-download</v-icon>\n          Download EcoTaxa .zip\n        </a>\n      </v-col>\n\n    </v-row>\n  </div>\n</template>\n\n<script>\nexport default {\n  data() {\n    return {\n      loading: true,\n      fbToken: '',\n      meta: {\n        sample_id: '',\n        project: '',\n        acq_id: ''\n      }\n    }\n  },\n\n  watch: {\n    msg: {\n      immediate: true,\n      deep: true,\n      handler(val) {\n\n        // --- CLEARING ---\n        if (!val?.payload?.meta || !val.payload.meta.sample_id) {\n          this.loading = false;\n          this.meta = {\n            sample_id: '',\n            project: '',\n            acq_id: ''\n          };\n          return;\n        }\n\n        // --- NORMAL UPDATE ---\n        this.loading = false;\n        this.meta = val.payload.meta;\n      }\n    }\n  },\n\n  async mounted() {\n    try {\n      const r = await fetch('/ps/data/browse/api/login', { method: 'POST' });\n      if (r.ok) this.fbToken = await r.text();\n    } catch (e) { /* token unavailable; download will fail */ }\n  },\n\n  methods: {\n    async fbDownload() {\n      if (!this.meta.sample_id) return;\n      const url = `/ps/data/browse/api/raw/export/ecotaxa/ecotaxa_${this.meta.acq_id}.zip`;\n      const filename = `ecotaxa_${this.meta.acq_id}.zip`;\n      try {\n        const r = await fetch(url, { headers: this.fbToken ? { 'X-Auth': this.fbToken } : {} });\n        if (!r.ok) { alert(`Download failed: HTTP ${r.status}`); return; }\n        const blob = await r.blob();\n        const objUrl = URL.createObjectURL(blob);\n        const a = document.createElement('a');\n        a.href = objUrl; a.download = filename;\n        document.body.appendChild(a); a.click(); a.remove();\n        setTimeout(() => URL.revokeObjectURL(objUrl), 1000);\n      } catch (e) { alert('Download error: ' + e.message); }\n    }\n  },\n\n  computed: {\n    downloadUrl() {\n      if (!this.meta.sample_id) return '#';\n      return `/ps/data/browse/api/raw/export/ecotaxa/ecotaxa_${this.meta.acq_id}.zip`;\n    }\n  }\n}\n</script>\n\n<style>\n/* Skeleton loader consistent with other widgets */\n\n.ps-skeleton {\n  width: 100%;\n  border-radius: 6px;\n  background: linear-gradient(90deg, #e0e0e0, #f5f5f5, #e0e0e0);\n  background-size: 200% 100%;\n  animation: psSkeletonAnim 1.2s infinite;\n}\n\n@keyframes psSkeletonAnim {\n  0% { background-position: 200% 0; }\n  100% { background-position: -200% 0; }\n}\n</style>\n",
-        "storeOutMessages": true,
-        "passthru": true,
-        "resendOnRefresh": true,
-        "templateScope": "local",
-        "className": "",
-        "x": 910,
-        "y": 440,
         "wires": [
             []
         ]
@@ -7048,9 +6940,7 @@
         "x": 510,
         "y": 440,
         "wires": [
-            [
-                "ce136c26883f5d99"
-            ]
+            []
         ]
     },
     {
@@ -7314,7 +7204,6 @@
                 "5267a7f80cdf6c6f",
                 "a6df52a13d3d310f",
                 "31ba1239ad82a60c",
-                "ce136c26883f5d99",
                 "3d4c586bf5742617",
                 "2133c934126655d8"
             ]
