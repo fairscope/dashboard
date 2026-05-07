@@ -3809,7 +3809,7 @@
         "type": "function",
         "z": "71ede8b7dd88d90e",
         "name": "update_config",
-        "func": "const keys = global.keys();\nlet config = {};\n\nkeys.forEach(key => {\n    if (!key.startsWith('$')) {\n        if (\n            key.startsWith('sample_') ||\n            key.startsWith('acq_') ||\n            key.startsWith('object_') ||\n            key.startsWith('process_') ||\n            key.startsWith('img_')\n        ) {\n            config[key] = global.get(key);\n        }\n    }\n});\n\n// Compose fully-qualified IDs for unique EcoTaxa naming\nconst project = config.sample_project || \"\";\nconst sampleRaw = String(config.sample_id || \"\");\nconst acqRaw = String(config.acq_id || \"\");\n\nif (project && !sampleRaw.startsWith(project + \"_\")) {\n    config.sample_id = project + \"_\" + sampleRaw;\n}\nconst finalSample = String(config.sample_id || \"\");\nif (finalSample && !acqRaw.startsWith(finalSample + \"_\")) {\n    config.acq_id = finalSample + \"_\" + acqRaw;\n}\n\n// Sanitize spaces in IDs to match filesystem paths\n// (the Python imager replaces spaces with underscores in directory names)\nconfig.sample_id = String(config.sample_id || \"\").replace(/ /g, \"_\");\nconfig.acq_id = String(config.acq_id || \"\").replace(/ /g, \"_\");\n\nmsg.topic = \"imager/image\";\n\nmsg.payload = {\n    action: \"update_config\",\n    config: config\n};\n\nreturn msg;",
+        "func": "/**\n * Configuration Formatter for EcoTaxa/PlanktoScope\n * Logic: Filters metadata based on the selected 'sample_gear' \n * and ensures IDs are correctly formatted.\n */\n\nconst keys = global.keys();\nconst gear = global.get('sample_gear') || \"Demo / Test\";\nlet rawConfig = {};\n\n// 1. Define \"White Lists\" for each metadata group\nconst commonAcq = [\n    'acq_comment', 'acq_flowcell_thickness', 'acq_id', 'acq_imaged_volume',\n    'acq_instrument', 'acq_interframe_flowrate', 'acq_interframe_volume',\n    'acq_magnification', 'acq_nb_frame', 'acq_objective_lens_reference',\n    'acq_pumped_volume', 'acq_stabilization_delay', 'acq_tube_lens_reference',\n    'acq_volume'\n];\n\n// Note: Net-specific acquisition meshes\nconst meshAcq = ['acq_maximum_mesh', 'acq_minimum_mesh'];\n\nconst commonSample = [\n    'sample_id', 'sample_project', 'sample_operator', 'sample_gear',\n    'sample_comment', 'sample_collected_volume', 'sample_concentration_factor',\n    'sample_sieve_mesh_size'\n];\n\nconst commonObject = ['object_date', 'object_time', 'object_lat', 'object_lon'];\nconst commonProcess = ['process_min_ESD', 'process_pixel_size'];\n\nlet allowedKeys = [];\n\n// 2. Select allowed keys based on the Sampling Gear\nswitch (gear) {\n    case \"Horizontal Net\":\n        allowedKeys = [\n            ...commonAcq, ...meshAcq, ...commonSample, ...commonProcess, ...commonObject,\n            'object_date_end', 'object_time_end', 'object_lat_end', 'object_lon_end',\n            'sample_depth_min', 'sample_depth_max', 'sample_filtered_volume',\n            'sample_net_length', 'sample_net_mouth_diameter', 'sample_net_mesh_size'\n        ];\n        break;\n\n    case \"Vertical Net\":\n        allowedKeys = [\n            ...commonAcq, ...meshAcq, ...commonSample, ...commonProcess, ...commonObject,\n            'acq_status', 'sample_depth_min', 'sample_depth_max', 'sample_filtered_volume',\n            'sample_net_length', 'sample_net_mouth_diameter', 'sample_net_mesh_size'\n        ];\n        break;\n\n    case \"Niskin bottle\":\n        allowedKeys = [\n            ...commonAcq, ...meshAcq, ...commonSample, ...commonProcess, ...commonObject,\n            'sample_depth_min', 'sample_depth_max', 'sample_net_mesh_size'\n        ];\n        break;\n\n    case \"Lab culture\":\n        allowedKeys = [...commonAcq, ...meshAcq, ...commonSample, ...commonProcess, ...commonObject];\n        break;\n\n    case \"Demo / Test\":\n        // Usually, mesh limits are not required for simple tests\n        allowedKeys = [...commonAcq, ...commonSample, ...commonProcess, ...commonObject];\n        break;\n}\n\n// 3. Extraction & Filtering: only keep keys defined in the allowed list\nkeys.forEach(key => {\n    if (allowedKeys.includes(key)) {\n        rawConfig[key] = global.get(key);\n    }\n});\n\n// 4. EcoTaxa ID Composition (Project_Sample_Acquisition)\n// Forced logic for \"Demo / Test\" project name\nconst project = (gear === \"Demo / Test\") ? \"TEST_DEBUG\" : (rawConfig.sample_project || \"\");\nlet sId = String(rawConfig.sample_id || \"\");\nlet aId = String(rawConfig.acq_id || \"\");\n\n// Ensure IDs are fully qualified with prefixes\nif (project && !sId.startsWith(project + \"_\")) {\n    sId = project + \"_\" + sId;\n}\nif (sId && !aId.startsWith(sId + \"_\")) {\n    aId = sId + \"_\" + aId;\n}\n\n// Update values and sanitize spaces with underscores for filesystem compatibility\nrawConfig.sample_project = project;\nrawConfig.sample_id = sId.replace(/ /g, \"_\");\nrawConfig.acq_id = aId.replace(/ /g, \"_\");\n\n// 5. Final Sorting: Group keys alphabetically by prefix (acq_, object_, process_, sample_)\nconst config = Object.keys(rawConfig)\n    .sort()\n    .reduce((obj, key) => {\n        obj[key] = rawConfig[key];\n        return obj;\n    }, {});\n\n// 6. Build the Node-RED message\nmsg.topic = \"imager/image\";\nmsg.payload = {\n    action: \"update_config\",\n    config: config\n};\n\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -3820,7 +3820,8 @@
         "y": 200,
         "wires": [
             [
-                "ff1fcb16bcb6619e"
+                "ff1fcb16bcb6619e",
+                "851f3193cf1f8a94"
             ]
         ]
     },
@@ -4127,6 +4128,22 @@
         "wires": [
             []
         ]
+    },
+    {
+        "id": "851f3193cf1f8a94",
+        "type": "debug",
+        "z": "71ede8b7dd88d90e",
+        "name": "debug 13",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1040,
+        "y": 360,
+        "wires": []
     },
     {
         "id": "3841297f254854cf",
