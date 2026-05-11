@@ -3594,8 +3594,8 @@
         "resendOnRefresh": true,
         "templateScope": "local",
         "className": "",
-        "x": 810,
-        "y": 360,
+        "x": 990,
+        "y": 340,
         "wires": [
             []
         ]
@@ -4109,6 +4109,56 @@
         "repair": false,
         "outputs": 1,
         "x": 590,
+        "y": 340,
+        "wires": [
+            [
+                "48ded02c62585a09"
+            ]
+        ]
+    },
+    {
+        "id": "48ded02c62585a09",
+        "type": "switch",
+        "z": "71ede8b7dd88d90e",
+        "name": "",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "neq",
+                "v": "light",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
+        "x": 710,
+        "y": 340,
+        "wires": [
+            [
+                "94f3e4961bb0b8e1"
+            ]
+        ]
+    },
+    {
+        "id": "94f3e4961bb0b8e1",
+        "type": "switch",
+        "z": "71ede8b7dd88d90e",
+        "name": "",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "neq",
+                "v": "imager/image",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
+        "x": 830,
         "y": 340,
         "wires": [
             [
