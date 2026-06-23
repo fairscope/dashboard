@@ -4820,7 +4820,7 @@
         "width": 0,
         "height": 0,
         "head": "",
-        "format": "<template>\n  <v-data-table fluid :headers=\"headers\" :sort-by=\"sortBy\" :items=\"items\" :loading=\"loading\" item-value=\"acquisition_id\"\n    item-key=\"acquisition_id\" density=\"comfortable\" hover :item-class=\"getRowClass\" sort-asc-icon=\"mdi-sort-ascending\"\n    sort-desc-icon=\"mdi-sort-descending\" sort-icon=\"mdi-swap-vertical\">\n\n    <template v-slot:loading>\n      <v-skeleton-loader type=\"table-row@5\"></v-skeleton-loader>\n    </template>\n\n    <template v-slot:item.date=\"{ item }\">\n      <span class=\"font-weight-medium text-body-2 text-high-emphasis\">\n        {{ formatDate((item.raw || item).date) }}\n      </span>\n    </template>\n\n    <template v-slot:item.project_name=\"{ item }\">\n      <code class=\"bg-grey-lighten-4 px-2 py-1 rounded text-caption text-grey-darken-3\">\n        {{ (item.raw || item).project_name }}\n      </code>\n    </template>\n\n    <template v-slot:item.sample_id=\"{ item }\">\n      <code class=\"bg-grey-lighten-4 px-2 py-1 rounded text-caption text-grey-darken-3\">\n        {{ (item.raw || item).sample_id }}\n      </code>\n    </template>\n\n    <template v-slot:item.acquisition_id=\"{ item }\">\n      <code class=\"bg-grey-lighten-4 px-2 py-1 rounded text-caption text-grey-darken-3\">\n        {{ (item.raw || item).acquisition_id }}\n      </code>\n    </template>\n\n    <template v-slot:item.operator_name=\"{ item }\">\n      <span class=\"text-body-2 text-high-emphasis\">\n        {{ (item.raw || item).operator_name || (item.raw || item).sample_operator }}\n      </span>\n    </template>\n\n    <template v-slot:item.mag=\"{ item }\">\n      <v-chip v-if=\"(item.raw || item).acq_magnification\" :color=\"getMagColor((item.raw || item).acq_magnification)\"\n        size=\"small\" variant=\"flat\" class=\"font-weight-bold\">\n        {{ (item.raw || item).acq_magnification }}\n      </v-chip>\n      <span v-else class=\"text-grey-lighten-1 text-caption\">—</span>\n    </template>\n\n    <template v-slot:item.acq_nb_frame=\"{ item }\">\n      <div class=\"d-flex align-center justify-end text-medium-emphasis\">\n        <span class=\"font-weight-bold text-high-emphasis\">\n          {{ Number((item.raw || item).acq_nb_frame || 0).toLocaleString() }}\n        </span>\n      </div>\n    </template>\n\n    <template v-slot:item.acq_nb_objects=\"{ item }\">\n      <div class=\"d-flex align-center justify-end text-medium-emphasis\">\n        <span class=\"font-weight-bold text-high-emphasis\">\n          {{ Number((item.raw || item).acq_nb_objects || 0).toLocaleString() }}\n        </span>\n      </div>\n    </template>\n\n    <template v-slot:item.gallery=\"{ item }\">\n      <v-btn v-if=\"(item.raw || item).gallery\" variant=\"text\" size=\"small\" color=\"grey-darken-1\"\n        :href=\"(item.raw || item).gallery\" target=\"_blank\">\n        <v-icon start>mdi-folder-image</v-icon>\n      </v-btn>\n    </template>\n\n    <template v-slot:item.actions=\"{ item }\">\n      <div class=\"d-flex align-center justify-end\">\n        <v-btn variant=\"text\" size=\"small\" color=\"primary\" class=\"text-capitalize font-weight-medium\"\n          @click=\"selectAcquisition(item.raw || item)\">\n          Open\n        </v-btn>\n\n        <v-tooltip v-if=\"(item.raw || item).export\" location=\"top\" text=\"Download .zip\">\n          <template v-slot:activator=\"{ props }\">\n            <v-btn\n              v-bind=\"props\"\n              variant=\"text\"\n              size=\"small\"\n              color=\"grey-darken-1\"\n              :href=\"(item.raw || item).export\"\n              target=\"_blank\"\n            >\n              <v-icon>mdi-download</v-icon>\n            </v-btn>\n          </template>\n        </v-tooltip>\n\n        <v-tooltip location=\"top\" text=\"Delete segmentation\">\n          <template v-slot:activator=\"{ props }\">\n            <v-btn v-bind=\"props\" icon variant=\"text\" size=\"small\" color=\"error\" class=\"ml-1\"\n              @click=\"confirmDeleteSeg(item.raw || item)\">\n              <v-icon>mdi-delete-outline</v-icon>\n            </v-btn>\n          </template>\n        </v-tooltip>\n      </div>\n    </template>\n\n    <template v-slot:no-data>\n      <div class=\"pa-8 text-center text-medium-emphasis\">\n        <v-icon icon=\"mdi-database-off\" size=\"x-large\" class=\"mb-3 text-grey-lighten-1\"></v-icon>\n        <div class=\"text-body-1\">No acquisitions found</div>\n      </div>\n    </template>\n  </v-data-table>\n\n  <v-dialog v-model=\"deleteDialogOpen\" max-width=\"500\">\n    <v-card class=\"pa-2\">\n      <v-card-title class=\"d-flex align-center text-h6 font-weight-bold\">\n        <v-icon color=\"warning\" class=\"mr-2\">mdi-alert-outline</v-icon>\n        Reset Segmentation\n      </v-card-title>\n      <v-card-text v-if=\"deleteTarget\" class=\"pt-2\">\n        <div class=\"mb-4\">\n          Are you sure you want to delete the segmentation results for:\n          <div class=\"mt-2 pa-2 bg-grey-lighten-4 rounded text-body-2 font-weight-medium\">\n            {{ deleteTarget.project_name }} / {{ deleteTarget.sample_id }} / {{ deleteTarget.acquisition_id }}\n          </div>\n        </div>\n      </v-card-text>\n      <v-card-actions class=\"pa-4\">\n        <v-spacer></v-spacer>\n        <v-btn variant=\"text\" class=\"text-none\" @click=\"closeDeleteDialog\">Cancel</v-btn>\n        <v-btn color=\"error\" variant=\"flat\" class=\"text-none px-4\" @click=\"deleteSegmentation\">\n          <v-icon start size=\"small\">mdi-broom</v-icon>\n          Confirm Reset\n        </v-btn>\n      </v-card-actions>\n    </v-card>\n  </v-dialog>\n</template>\n\n<script>\nexport default {\n  props: {\n    msg: { type: Object, default: () => ({}) }\n  },\n  data() {\n    return {\n      search: \"\",\n      items: [],\n      loading: true,\n      selectedRow: null,\n      selectedItem: null,\n      deleteDialogOpen: false,\n      deleteTarget: null,\n      refreshTimer: null,\n      sortBy: [{ key: 'date', order: 'desc' }],\n      headers: [\n        { title: \"Date & Time (UTC)\", key: \"date\", align: \"start\", minWidth: \"190px\" },\n        { title: \"Project\", key: \"project_name\", align: \"start\" },\n        { title: \"Sample\", key: \"sample_id\", align: \"start\" },\n        { title: \"Acquisition ID\", key: \"acquisition_id\", align: \"start\" },\n        { title: \"Operator\", key: \"operator_name\", align: \"start\" },\n        { title: \"Magnification\", key: \"mag\", align: \"start\" },\n        { title: \"Nb Images\", key: \"acq_nb_frame\", align: \"end\" },\n        { title: \"Nb Objects\", key: \"acq_nb_objects\", align: \"end\" },\n        { title: \"Gallery\", key: \"gallery\", sortable: false, align: \"end\" },\n        { title: \"Actions\", key: \"actions\", sortable: false, align: \"end\", width: \"180px\" }\n      ]\n    };\n  },\n\n  watch: {\n    msg: {\n      deep: true,\n      immediate: true,\n      handler(val) {\n        if (!val?.payload) return;\n        const payload = val.payload;\n        if (payload === \"clear\" || (Array.isArray(payload) && payload.length === 0)) {\n          this.items = [];\n          this.loading = true;\n          setTimeout(() => { this.loading = false; }, 300);\n          return;\n        }\n        if (Array.isArray(payload)) {\n          this.items = payload;\n          this.loading = false;\n        }\n      }\n    }\n  },\n\n  mounted() {\n    if (this.msg?.payload && Array.isArray(this.msg.payload)) {\n      this.items = this.msg.payload;\n      this.loading = false;\n    }\n  },\n\n  methods: {\n    getMagColor(mag) {\n      if (!mag) return 'grey';\n      const val = mag.toString().toLowerCase();\n      if (val.includes('low')) return 'green';\n      if (val.includes('medium')) return 'brown';\n      if (val.includes('high')) return 'orange';\n      return 'grey';\n    },\n\n    formatDate(isoString) {\n      if (!isoString) return '—';\n      const date = new Date(isoString);\n      if (isNaN(date.getTime())) return isoString;\n      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];\n      return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}, ${String(date.getHours() % 12 || 12).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')} ${date.getHours() >= 12 ? 'PM' : 'AM'}`;\n    },\n\n    selectAcquisition(item) {\n      this.selectedRow = item.acquisition_id;\n      this.selectedItem = item;\n      if (typeof this.send === \"function\") this.send({ topic: \"selected_acquisition\", payload: item });\n    },\n\n    confirmDeleteSeg(item) {\n      this.deleteTarget = item;\n      this.deleteDialogOpen = true;\n    },\n\n    closeDeleteDialog() {\n      this.deleteDialogOpen = false;\n      this.deleteTarget = null;\n    },\n\n    deleteSegmentation() {\n      if (!this.deleteTarget) return;\n\n      if (typeof this.send === \"function\") {\n        this.send({\n          topic: \"delete_segmentation\",\n          payload: { ...this.deleteTarget }\n        });\n      }\n\n      this.items = this.items.filter(\n        (item) => item.acquisition_id !== this.deleteTarget.acquisition_id\n      );\n\n      this.closeDeleteDialog();\n    },\n\n    getRowClass(wrapper) {\n      const item = wrapper.raw ?? wrapper;\n      return { \"bg-blue-lighten-5\": item.acquisition_id === this.selectedRow };\n    }\n  }\n};\n</script>",
+        "format": "<template>\n  <v-data-table fluid :headers=\"headers\" :sort-by=\"sortBy\" :items=\"items\" :loading=\"loading\" item-value=\"acquisition_id\"\n    item-key=\"acquisition_id\" density=\"comfortable\" hover :item-class=\"getRowClass\" sort-asc-icon=\"mdi-sort-ascending\"\n    sort-desc-icon=\"mdi-sort-descending\" sort-icon=\"mdi-swap-vertical\">\n\n    <template v-slot:loading>\n      <v-skeleton-loader type=\"table-row@5\"></v-skeleton-loader>\n    </template>\n\n    <template v-slot:item.date=\"{ item }\">\n      <span class=\"font-weight-medium text-body-2 text-high-emphasis\">\n        {{ formatDate((item.raw || item).date) }}\n      </span>\n    </template>\n\n    <template v-slot:item.project_name=\"{ item }\">\n      <code class=\"bg-grey-lighten-4 px-2 py-1 rounded text-caption text-grey-darken-3\">\n        {{ (item.raw || item).project_name }}\n      </code>\n    </template>\n\n    <template v-slot:item.sample_id=\"{ item }\">\n      <code class=\"bg-grey-lighten-4 px-2 py-1 rounded text-caption text-grey-darken-3\">\n        {{ (item.raw || item).sample_id }}\n      </code>\n    </template>\n\n    <template v-slot:item.acquisition_id=\"{ item }\">\n      <code class=\"bg-grey-lighten-4 px-2 py-1 rounded text-caption text-grey-darken-3\">\n        {{ (item.raw || item).acquisition_id }}\n      </code>\n    </template>\n\n    <template v-slot:item.operator_name=\"{ item }\">\n      <span class=\"text-body-2 text-high-emphasis\">\n        {{ (item.raw || item).operator_name || (item.raw || item).sample_operator }}\n      </span>\n    </template>\n\n    <template v-slot:item.mag=\"{ item }\">\n      <v-chip v-if=\"(item.raw || item).acq_magnification\" :color=\"getMagColor((item.raw || item).acq_magnification)\"\n        size=\"small\" variant=\"flat\" class=\"font-weight-bold\">\n        {{ (item.raw || item).acq_magnification }}\n      </v-chip>\n      <span v-else class=\"text-grey-lighten-1 text-caption\">—</span>\n    </template>\n\n    <template v-slot:item.acq_nb_frame=\"{ item }\">\n      <div class=\"d-flex align-center justify-end text-medium-emphasis\">\n        <span class=\"font-weight-bold text-high-emphasis\">\n          {{ Number((item.raw || item).acq_nb_frame || 0).toLocaleString() }}\n        </span>\n      </div>\n    </template>\n\n    <template v-slot:item.acq_nb_objects=\"{ item }\">\n      <div class=\"d-flex align-center justify-end text-medium-emphasis\">\n        <span class=\"font-weight-bold text-high-emphasis\">\n          {{ Number((item.raw || item).acq_nb_objects || 0).toLocaleString() }}\n        </span>\n      </div>\n    </template>\n\n    <template v-slot:item.gallery=\"{ item }\">\n      <v-btn v-if=\"(item.raw || item).gallery\" variant=\"text\" size=\"small\" color=\"grey-darken-1\"\n        :href=\"(item.raw || item).gallery\" target=\"_blank\">\n        <v-icon start>mdi-folder-image</v-icon>\n      </v-btn>\n    </template>\n\n    <template v-slot:item.actions=\"{ item }\">\n      <div class=\"d-flex align-center justify-end\">\n        <v-btn variant=\"text\" size=\"small\" color=\"primary\" class=\"text-capitalize font-weight-medium\"\n          @click=\"selectAcquisition(item.raw || item)\">\n          Open\n        </v-btn>\n        <v-tooltip location=\"top\" text=\"Generate PDF report\">\n          <template v-slot:activator=\"{ props }\">\n            <v-btn v-bind=\"props\" icon variant=\"text\" size=\"small\" color=\"primary\" class=\"ml-1\"\n              @click=\"generateReport(item.raw || item)\">\n              <v-icon>mdi-file-chart</v-icon>\n            </v-btn>\n          </template>\n        </v-tooltip>\n\n        <v-tooltip v-if=\"(item.raw || item).export\" location=\"top\" text=\"Download .zip\">\n          <template v-slot:activator=\"{ props }\">\n            <v-btn\n              v-bind=\"props\"\n              variant=\"text\"\n              size=\"small\"\n              color=\"grey-darken-1\"\n              :href=\"(item.raw || item).export\"\n              target=\"_blank\"\n            >\n              <v-icon>mdi-download</v-icon>\n            </v-btn>\n          </template>\n        </v-tooltip>\n\n        <v-tooltip location=\"top\" text=\"Delete segmentation\">\n          <template v-slot:activator=\"{ props }\">\n            <v-btn v-bind=\"props\" icon variant=\"text\" size=\"small\" color=\"error\" class=\"ml-1\"\n              @click=\"confirmDeleteSeg(item.raw || item)\">\n              <v-icon>mdi-delete-outline</v-icon>\n            </v-btn>\n          </template>\n        </v-tooltip>\n      </div>\n    </template>\n\n    <template v-slot:no-data>\n      <div class=\"pa-8 text-center text-medium-emphasis\">\n        <v-icon icon=\"mdi-database-off\" size=\"x-large\" class=\"mb-3 text-grey-lighten-1\"></v-icon>\n        <div class=\"text-body-1\">No acquisitions found</div>\n      </div>\n    </template>\n  </v-data-table>\n\n  <v-dialog v-model=\"deleteDialogOpen\" max-width=\"500\">\n    <v-card class=\"pa-2\">\n      <v-card-title class=\"d-flex align-center text-h6 font-weight-bold\">\n        <v-icon color=\"warning\" class=\"mr-2\">mdi-alert-outline</v-icon>\n        Reset Segmentation\n      </v-card-title>\n      <v-card-text v-if=\"deleteTarget\" class=\"pt-2\">\n        <div class=\"mb-4\">\n          Are you sure you want to delete the segmentation results for:\n          <div class=\"mt-2 pa-2 bg-grey-lighten-4 rounded text-body-2 font-weight-medium\">\n            {{ deleteTarget.project_name }} / {{ deleteTarget.sample_id }} / {{ deleteTarget.acquisition_id }}\n          </div>\n        </div>\n      </v-card-text>\n      <v-card-actions class=\"pa-4\">\n        <v-spacer></v-spacer>\n        <v-btn variant=\"text\" class=\"text-none\" @click=\"closeDeleteDialog\">Cancel</v-btn>\n        <v-btn color=\"error\" variant=\"flat\" class=\"text-none px-4\" @click=\"deleteSegmentation\">\n          <v-icon start size=\"small\">mdi-broom</v-icon>\n          Confirm Reset\n        </v-btn>\n      </v-card-actions>\n    </v-card>\n  </v-dialog>\n</template>\n\n<script>\nexport default {\n  props: {\n    msg: { type: Object, default: () => ({}) }\n  },\n  data() {\n    return {\n      search: \"\",\n      items: [],\n      loading: true,\n      selectedRow: null,\n      selectedItem: null,\n      deleteDialogOpen: false,\n      deleteTarget: null,\n      refreshTimer: null,\n      sortBy: [{ key: 'date', order: 'desc' }],\n      headers: [\n        { title: \"Date & Time (UTC)\", key: \"date\", align: \"start\", minWidth: \"190px\" },\n        { title: \"Project\", key: \"project_name\", align: \"start\" },\n        { title: \"Sample\", key: \"sample_id\", align: \"start\" },\n        { title: \"Acquisition ID\", key: \"acquisition_id\", align: \"start\" },\n        { title: \"Operator\", key: \"operator_name\", align: \"start\" },\n        { title: \"Magnification\", key: \"mag\", align: \"start\" },\n        { title: \"Nb Images\", key: \"acq_nb_frame\", align: \"end\" },\n        { title: \"Nb Objects\", key: \"acq_nb_objects\", align: \"end\" },\n        { title: \"Gallery\", key: \"gallery\", sortable: false, align: \"end\" },\n        { title: \"Actions\", key: \"actions\", sortable: false, align: \"end\", width: \"180px\" }\n      ]\n    };\n  },\n\n  watch: {\n    msg: {\n      deep: true,\n      immediate: true,\n      handler(val) {\n        if (!val?.payload) return;\n        const payload = val.payload;\n        if (payload === \"clear\" || (Array.isArray(payload) && payload.length === 0)) {\n          this.items = [];\n          this.loading = true;\n          setTimeout(() => { this.loading = false; }, 300);\n          return;\n        }\n        if (Array.isArray(payload)) {\n          this.items = payload;\n          this.loading = false;\n        }\n      }\n    }\n  },\n\n  mounted() {\n    if (this.msg?.payload && Array.isArray(this.msg.payload)) {\n      this.items = this.msg.payload;\n      this.loading = false;\n    }\n  },\n\n  methods: {\n    getMagColor(mag) {\n      if (!mag) return 'grey';\n      const val = mag.toString().toLowerCase();\n      if (val.includes('low')) return 'green';\n      if (val.includes('medium')) return 'brown';\n      if (val.includes('high')) return 'orange';\n      return 'grey';\n    },\n\n    formatDate(isoString) {\n      if (!isoString) return '—';\n      const date = new Date(isoString);\n      if (isNaN(date.getTime())) return isoString;\n      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];\n      return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}, ${String(date.getHours() % 12 || 12).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')} ${date.getHours() >= 12 ? 'PM' : 'AM'}`;\n    },\n\n    selectAcquisition(item) {\n      this.selectedRow = item.acquisition_id;\n      this.selectedItem = item;\n      if (typeof this.send === \"function\") this.send({ topic: \"selected_acquisition\", payload: item });\n    },\n\n    generateReport(item) {\n      if (typeof this.send === \"function\") this.send({ topic: \"generate_report\", payload: { ...item } });\n    },\n\n    confirmDeleteSeg(item) {\n      this.deleteTarget = item;\n      this.deleteDialogOpen = true;\n    },\n\n    closeDeleteDialog() {\n      this.deleteDialogOpen = false;\n      this.deleteTarget = null;\n    },\n\n    deleteSegmentation() {\n      if (!this.deleteTarget) return;\n\n      if (typeof this.send === \"function\") {\n        this.send({\n          topic: \"delete_segmentation\",\n          payload: { ...this.deleteTarget }\n        });\n      }\n\n      this.items = this.items.filter(\n        (item) => item.acquisition_id !== this.deleteTarget.acquisition_id\n      );\n\n      this.closeDeleteDialog();\n    },\n\n    getRowClass(wrapper) {\n      const item = wrapper.raw ?? wrapper;\n      return { \"bg-blue-lighten-5\": item.acquisition_id === this.selectedRow };\n    }\n  }\n};\n</script>",
         "storeOutMessages": true,
         "passthru": false,
         "resendOnRefresh": true,
@@ -4831,7 +4831,8 @@
         "wires": [
             [
                 "bd1d7450f271d6f9",
-                "7689416d1aa41db5"
+                "7689416d1aa41db5",
+                "rpt0switch000001"
             ]
         ]
     },
@@ -9192,5 +9193,113 @@
         "x": 1340,
         "y": 760,
         "wires": []
+    },
+    {
+        "id": "rpt0switch000001",
+        "type": "switch",
+        "z": "a5db9f13cbec8ecb",
+        "name": "topic == generate_report",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "generate_report",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
+        "x": 1680,
+        "y": 1180,
+        "wires": [
+            [
+                "rpt0buildcmd0001"
+            ]
+        ]
+    },
+    {
+        "id": "rpt0buildcmd0001",
+        "type": "function",
+        "z": "a5db9f13cbec8ecb",
+        "name": "Build report cmd",
+        "func": "const item = msg.payload || {};\nconst objPath = item.path || \"\";\nconst imgPath = objPath.replace(\"/objects/\", \"/img/\");\nmsg.topic = \"actuator/reporter/generate\";\nmsg.payload = { action: \"generate\", acquisition_path: imgPath };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1680,
+        "y": 1240,
+        "wires": [
+            [
+                "rpt0mqttout00001"
+            ]
+        ]
+    },
+    {
+        "id": "rpt0mqttout00001",
+        "type": "mqtt out",
+        "z": "a5db9f13cbec8ecb",
+        "name": "actuator/reporter/generate",
+        "topic": "actuator/reporter/generate",
+        "qos": "0",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "8dc3722c.06efa8",
+        "x": 1710,
+        "y": 1300,
+        "wires": []
+    },
+    {
+        "id": "rpt0mqttin000001",
+        "type": "mqtt in",
+        "z": "a5db9f13cbec8ecb",
+        "name": "status/reporter",
+        "topic": "status/reporter",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "8dc3722c.06efa8",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 1680,
+        "y": 1380,
+        "wires": [
+            [
+                "rpt0snackbar0001"
+            ]
+        ]
+    },
+    {
+        "id": "rpt0snackbar0001",
+        "type": "ui-template",
+        "z": "a5db9f13cbec8ecb",
+        "group": "61b6af3167a1cd07",
+        "page": "",
+        "ui": "",
+        "name": "Report Snackbar",
+        "order": 99,
+        "width": 0,
+        "height": 0,
+        "head": "",
+        "format": "<template>\n  <v-snackbar v-model=\"show\" :color=\"color\" :timeout=\"timeout\" location=\"top right\" multi-line>\n    <div class=\"d-flex align-center\">\n      <v-progress-circular v-if=\"busy\" indeterminate size=\"18\" width=\"2\" class=\"mr-3\"></v-progress-circular>\n      <v-icon v-else class=\"mr-3\">{{ icon }}</v-icon>\n      <span>{{ text }}</span>\n    </div>\n    <template v-slot:actions>\n      <v-btn v-if=\"urlOnepage\" variant=\"flat\" color=\"white\" class=\"text-none mr-1\" :href=\"urlOnepage\" target=\"_blank\">\n        <v-icon start>mdi-file-document-outline</v-icon>One-page\n      </v-btn>\n      <v-btn v-if=\"urlFull\" variant=\"flat\" color=\"white\" class=\"text-none\" :href=\"urlFull\" target=\"_blank\">\n        <v-icon start>mdi-file-chart-outline</v-icon>Full report\n      </v-btn>\n      <v-btn icon=\"mdi-close\" variant=\"text\" @click=\"show=false\"></v-btn>\n    </template>\n  </v-snackbar>\n</template>\n<script>\nexport default {\n  props: { msg: { type: Object, default: () => ({}) } },\n  data() { return { show:false, busy:false, text:\"\", color:\"info\", icon:\"mdi-information\", urlFull:\"\", urlOnepage:\"\", timeout:-1 }; },\n  watch: {\n    msg: {\n      deep: true, immediate: true,\n      handler(v) {\n        const p = v?.payload;\n        if (!p || typeof p !== \"object\" || !p.status) return;\n        if (p.status === \"generating\") {\n          this.busy=true; this.text=\"Generating report…\"; this.color=\"info\"; this.urlFull=\"\"; this.urlOnepage=\"\"; this.timeout=-1; this.show=true;\n        } else if (p.status === \"done\") {\n          this.busy=false; this.icon=\"mdi-check-circle\"; this.text=\"Report ready — choose a format\"; this.color=\"success\";\n          this.urlFull=p.url_full||p.url||\"\"; this.urlOnepage=p.url_onepage||\"\"; this.timeout=-1; this.show=true;\n        } else if (p.status === \"error\") {\n          this.busy=false; this.icon=\"mdi-alert-circle\"; this.text=\"Report failed: \"+(p.error||\"unknown\"); this.color=\"error\"; this.urlFull=\"\"; this.urlOnepage=\"\"; this.timeout=8000; this.show=true;\n        }\n      }\n    }\n  }\n};\n</script>",
+        "storeOutMessages": true,
+        "passthru": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "className": "",
+        "x": 1680,
+        "y": 1440,
+        "wires": [
+            []
+        ]
     }
 ]
