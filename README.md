@@ -4,8 +4,8 @@ This is the [Node-RED](https://nodered.org/) project for the [PlanktoScope](http
 
 ## URLs
 
-[/ps/node-red-v2/dashboard/](http://planktoscope.local/ps/node-red-v2/dashboard/) to access the dashboard
-[/admin/ps/node-red-v2/](http://planktoscope.local/admin/ps/node-red-v2/) to access the Node-RED editor
+[/ps/node-red-v2/dashboard/](http://192.168.4.1/ps/node-red-v2/dashboard/) to access the dashboard
+[/admin/ps/node-red-v2/](http://192.168.4.1/admin/ps/node-red-v2/) to access the Node-RED editor
 
 ## Development
 
@@ -24,7 +24,7 @@ git push
 
 ## Read and Write Data in global.json
 
-Data is stored in a file located at: [`PlanktoScope/node-red/context/global/global.json`](http://planktoscope.local/admin/fs/files/opt/PlanktoScope/node-red/context/global/global.json).
+Data is stored in a file located at: [`PlanktoScope/node-red/context/global/global.json`](http://192.168.4.1/admin/fs/files/opt/PlanktoScope/node-red/context/global/global.json).
 
 ### Read Data
 
